@@ -1,0 +1,54 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Risk Orchestration Engine - Components (Prototype)
+
+Container_Ext(kb, "Analyzer Knowledge Base", "Registry of analyzers, required inputs, mappings, applicability, versioning")
+Container_Ext(metaModel, "Unified Meta-Model Store", "Canonical patient/context/risk graph + provenance")
+Container_Ext(adapter, "Analyzer Adapter Layer", "Connectors for external calculators")
+Container_Ext(reporting, "Result Harmonization & Reporting", "Normalize/compare/explain")
+Container_Ext(nlu, "Conversation & NLU Service", "Dialogue state + question generation")
+Container_Ext(audit, "Audit & Observability", "Append-only logs")
+
+Container_Boundary(c1, "Risk Orchestration Engine") {
+
+  Component(riskGraph, "Risk DAG Builder", "Logic", "Builds risk dependency graph: primary prostate risk -> biopsy decision -> first-level complication risks")
+
+  Component(applicability, "Applicability & Eligibility Checker", "Rules", "Selects which analyzers apply (MRI vs no MRI, biopsy-naïve vs prior biopsy, etc.)")
+
+  Component(missingInputs, "Missing Input Resolver", "Logic", "Computes missing required fields; prioritizes next-best question to reduce uncertainty")
+
+  Component(questionPlanner, "Question Planner", "Logic", "Turns missing inputs into patient-friendly follow-up prompts + structured capture forms")
+
+  Component(executor, "Parallel Analyzer Executor", "Logic", "Invokes all eligible analyzers; handles retries/timeouts; respects ToS constraints (e.g., link-out only)")
+
+  Component(normalizer, "Result Normalizer", "Logic", "Maps outputs into canonical RiskResult: outcome, probability, horizon, assumptions, warnings")
+
+  Component(comparator, "Result Comparator", "Logic", "Detects disagreement; derives median/range; flags outliers; attaches 'why different' explanations")
+
+  Component(transitive, "Transitive Risk Trigger", "Rules", "If biopsy considered -> triggers infection/sepsis/bleeding/retention risk workflow; requests extra inputs")
+
+  Component(policy, "Safety & Consent Policy", "Rules", "Ensures disclaimers, confirmation of inferred data, PHI minimization, and safe clinical framing")
+}
+
+Rel(nlu, riskGraph, "Request risk evaluation + current dialogue facts", "Internal API")
+Rel(riskGraph, applicability, "Provides risk nodes & context", "In-process")
+Rel(applicability, kb, "Reads analyzer requirements/applicability", "Read-only")
+Rel(applicability, missingInputs, "Sends required input sets", "In-process")
+Rel(missingInputs, questionPlanner, "Missing fields + priority", "In-process")
+Rel(questionPlanner, nlu, "Returns follow-up questions/forms", "Internal API")
+
+Rel(riskGraph, transitive, "Checks biopsy node status", "In-process")
+Rel(transitive, missingInputs, "Adds complication-specific inputs", "In-process")
+
+Rel(executor, adapter, "Invoke analyzers with mapped inputs", "Internal API")
+Rel(executor, audit, "Log calls, timing, failures", "Append-only")
+Rel(executor, metaModel, "Read patient context; write raw results", "Internal API")
+Rel(executor, normalizer, "Raw outputs", "In-process")
+
+Rel(normalizer, comparator, "Canonical results", "In-process")
+Rel(comparator, reporting, "Harmonized summary + disagreement flags", "Internal API")
+Rel(policy, reporting, "Adds disclaimers, applicability warnings", "In-process")
+Rel(policy, audit, "Log policy decisions", "Append-only")
+
+@enduml

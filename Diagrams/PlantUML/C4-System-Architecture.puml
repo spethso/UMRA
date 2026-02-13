@@ -1,0 +1,26 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title Unified Medical Risk Orchestrator - System Context (Prototype)
+
+Person(clinician, "Clinician", "Uses conversational UI to capture patient data and review risks")
+Person(patient, "Patient", "Provides history and preferences; may review results")
+
+System_Boundary(s1, "Unified Medical Risk Orchestrator (your system)") {
+  System(riskTool, "Unified Medical Risk Orchestrator", "Conversational capture + orchestration + unified meta-model; calls third-party analyzers; explains results")
+}
+
+System_Ext(ehr, "EHR / HIS", "FHIR/HL7 data source (optional in prototype)")
+System_Ext(kb, "Analyzer Knowledge Base", "Registry of analyzers, required inputs, applicability, mappings, versions")
+System_Ext(analyzers, "3rd-party Risk Analyzers", "External calculators/nomograms for prostate cancer risk + complication risks")
+System_Ext(voice, "Speech Services", "STT/TTS for conversational input/output")
+
+Rel(clinician, riskTool, "Uses", "Speech/Text")
+Rel(patient, riskTool, "Provides data to", "Speech/Text (optional)")
+
+Rel(riskTool, voice, "Uses", "Audio in/out")
+Rel(riskTool, ehr, "Reads patient data", "FHIR/REST (optional)")
+Rel(riskTool, kb, "Loads analyzer definitions & mappings", "Read-only")
+Rel(riskTool, analyzers, "Invokes", "HTTPS / Web / API (per analyzer)")
+
+@enduml

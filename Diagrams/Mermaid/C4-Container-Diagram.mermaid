@@ -1,0 +1,42 @@
+C4Container
+title Unified Medical Risk Orchestrator - Containers (Prototype)
+
+Person(clinician, "Clinician", "Primary user")
+
+System_Ext(ehr, "EHR / HIS", "FHIR/HL7 (optional)")
+System_Ext(voice, "Speech Services", "STT/TTS")
+System_Ext(externalAnalyzers, "3rd-party Risk Analyzers", "Web forms/APIs for prostate & biopsy complication risks")
+
+System_Boundary(sys, "Unified Medical Risk Orchestrator") {
+
+  Container(ui, "Conversational UI", "Web/Mobile", "Chat + form fallback; shows captured facts, asks follow-ups, displays results")
+
+  Container(nlu, "Conversation & NLU Service", "Service", "Entity extraction, dialogue state, question generation, safety confirmations")
+
+  Container(orchestrator, "Risk Orchestration Engine", "Service", "Builds risk DAG; selects analyzers; resolves missing inputs; runs all applicable analyzers; compares results")
+
+  Container(metaModel, "Unified Meta-Model Store", "DB", "Canonical patient+context+risk graph; provenance; units; timestamps (FHIR-aligned)")
+
+  Container(kb, "Analyzer Knowledge Base", "DB/Docs", "Analyzer registry: applicability, required inputs, mappings, output schema, versions, ToS constraints")
+
+  Container(adapter, "Analyzer Adapter Layer", "Service", "Per-analyzer connectors: transform(meta-model)->input; invoke; parse->canonical results")
+
+  Container(reporting, "Result Harmonization & Reporting", "Service", "Normalizes probabilities/categories; disagreement flags; explanations; audit log")
+
+  Container(audit, "Audit & Observability", "DB/Service", "Immutable logs of prompts, data, analyzer calls, outputs; security events")
+}
+
+Rel(clinician, ui, "Uses", "Speech/Text")
+Rel(ui, voice, "STT/TTS via", "Audio")
+Rel(ui, nlu, "Sends utterances / receives prompts", "HTTPS/JSON")
+Rel(nlu, metaModel, "Writes/reads structured patient facts", "Internal API")
+Rel(nlu, orchestrator, "Requests risk evaluation", "Internal API")
+Rel(orchestrator, kb, "Reads analyzer definitions", "Read-only")
+Rel(orchestrator, adapter, "Runs selected analyzers", "Internal API")
+Rel(adapter, externalAnalyzers, "Invokes analyzers", "HTTPS / Web / API")
+Rel(adapter, metaModel, "Reads canonical inputs; writes raw outputs", "Internal API")
+Rel(orchestrator, reporting, "Sends raw + canonical results", "Internal API")
+Rel(reporting, ui, "Returns risk summaries + explanations", "HTTPS/JSON")
+Rel(reporting, audit, "Writes audit entries", "Append-only")
+Rel(orchestrator, audit, "Writes execution trace", "Append-only")
+Rel(metaModel, ehr, "Optional import", "FHIR/REST")
