@@ -14,6 +14,11 @@ The application does not compute the risks itself but acts as a unified interfac
 - Server forwards the request to the online analyzer endpoint and normalizes results into a shared response model.
 - Architecture supports adding multiple analyzers and returning an aggregated result.
 
+### Online Forwarding Setting
+
+- PCPTRC remote forwarding can be controlled via:
+  - `umra.analyzers.pcptrc.online-forwarding-enabled` (default: `true`)
+
 ## Project Structure
 
 - `server/`: Kotlin GraphQL server

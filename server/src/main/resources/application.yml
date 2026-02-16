@@ -9,3 +9,8 @@ spring:
 
 server:
   port: 8080
+
+umra:
+  analyzers:
+    pcptrc:
+      online-forwarding-enabled: true

@@ -10,6 +10,7 @@ import de.umra.risk.model.ProstateCancerRiskRequest
 import de.umra.risk.model.Race
 import de.umra.risk.model.RelativeCountOption
 import de.umra.risk.service.RiskAnalyzer
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.util.UriComponentsBuilder
@@ -17,6 +18,8 @@ import org.springframework.web.util.UriComponentsBuilder
 @Component
 class PcptrcRiskAnalyzer(
     restClientBuilder: RestClient.Builder,
+    @Value("\${umra.analyzers.pcptrc.online-forwarding-enabled:true}")
+    private val onlineForwardingEnabled: Boolean,
 ) : RiskAnalyzer {
     private val riskModel = PcptrcRiskModel()
     private val restClient = restClientBuilder.build()
@@ -53,7 +56,11 @@ class PcptrcRiskAnalyzer(
             snps = if (request.snpsEnabled && request.race == Race.CAUCASIAN) request.snpGenotypes else emptyList(),
         )
 
-        val onlineForwarded = forwardToOnlineAnalyzer(request)
+        val onlineForwarded = if (onlineForwardingEnabled) {
+            forwardToOnlineAnalyzer(request)
+        } else {
+            false
+        }
 
         return AnalyzerRiskResult(
             analyzerId = metadata().analyzerId,
@@ -61,7 +68,11 @@ class PcptrcRiskAnalyzer(
             sourceUrl = metadata().sourceUrl,
             forwardedOnline = onlineForwarded,
             success = true,
-            warning = if (!onlineForwarded) "Online forwarding failed; result calculated from validated PCPTRC model." else null,
+            warning = when {
+                !onlineForwardingEnabled -> "Online forwarding is disabled by configuration."
+                !onlineForwarded -> "Online forwarding failed; result calculated from validated PCPTRC model."
+                else -> null
+            },
             risk = modelResult,
         )
     }
@@ -119,7 +130,8 @@ class PcptrcRiskAnalyzer(
             .queryParam("pca_3", if (request.pca3Available) request.pca3 else null)
             .queryParam("t_2erg", if (request.t2ergAvailable) request.t2erg else null)
             .queryParam("calcRisk", 1)
-            .build(true)
+            .build()
+            .encode()
             .toUri()
 
         return runCatching {
