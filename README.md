@@ -1,6 +1,7 @@
-# UMRA Hello World (Kotlin + Vue + GraphQL + PostgreSQL)
+# UMRA (Unified Medical Risk Analyzer)
 
-Simple client-server hello world application:
+Client-Server application for a unified medical risk analyzer.
+The application does not compute the risks itself but acts as a unified interface for third-party analyzers.
 
 - **Server**: Kotlin + Spring Boot (modulith-style package modules), GraphQL API, GraphiQL enabled
 - **Client**: Vue 3 + Apollo Client
@@ -23,9 +24,9 @@ docker compose up --build
 
 ### URLs
 
-- Client: http://localhost:4173
-- GraphQL endpoint: http://localhost:8080/graphql
-- GraphiQL: http://localhost:8080/graphiql
+- Client: <http://localhost:4173>
+- GraphQL endpoint: <http://localhost:8080/graphql>
+- GraphiQL: <http://localhost:8080/graphiql>
 
 Try in GraphiQL:
 

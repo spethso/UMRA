@@ -1,3 +1,10 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.project.sourcePaths": [
+        "server/src/main/kotlin",
+        "server/src/main/java",
+        "server/src/test/kotlin",
+        "server/src/test/java"
+    ]
 }
