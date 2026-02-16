@@ -1,14 +1,7 @@
 spring:
-  datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/umra}
-    username: ${SPRING_DATASOURCE_USERNAME:umra}
-    password: ${SPRING_DATASOURCE_PASSWORD:umra}
-  jpa:
-    hibernate:
-      ddl-auto: update
   graphql:
     graphiql:
-      enabled: true
+      enabled: false
     cors:
       allowed-origins: "*"
       allowed-methods: "*"

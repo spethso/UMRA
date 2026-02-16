@@ -1,32 +1,8 @@
 services:
-  db:
-    image: postgres:16-alpine
-    container_name: umra-db
-    environment:
-      POSTGRES_DB: umra
-      POSTGRES_USER: umra
-      POSTGRES_PASSWORD: umra
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U umra -d umra"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-
   server:
     build:
       context: ./server
     container_name: umra-server
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/umra
-      SPRING_DATASOURCE_USERNAME: umra
-      SPRING_DATASOURCE_PASSWORD: umra
     ports:
       - "8080:8080"
 
@@ -38,6 +14,3 @@ services:
       - server
     ports:
       - "4173:4173"
-
-volumes:
-  postgres_data:

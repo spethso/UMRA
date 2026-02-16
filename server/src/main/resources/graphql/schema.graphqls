@@ -1,8 +1,112 @@
 type Query {
-  hello: String!
-  texts: [String!]!
+  analyzers: [AnalyzerInfo!]!
 }
 
 type Mutation {
-  addText(text: String!): String!
+  analyzeProstateCancerRisk(input: ProstateCancerRiskInput!): RiskAnalysisResponse!
+}
+
+type AnalyzerInfo {
+  analyzerId: String!
+  displayName: String!
+  sourceUrl: String!
+}
+
+input ProstateCancerRiskInput {
+  race: Race!
+  age: Int!
+  psa: Float!
+  familyHistory: FamilyHistoryOption!
+  dre: DreOption!
+  priorBiopsy: PriorBiopsyOption!
+
+  detailedFamilyHistoryEnabled: Boolean
+  fdrPcLess60: RelativeCountOption
+  fdrPc60: RelativeCountOption
+  fdrBc: BinaryRelativeOption
+  sdr: BinaryRelativeOption
+
+  pctFreePsaAvailable: Boolean
+  pctFreePsa: Float
+
+  pca3Available: Boolean
+  pca3: Float
+
+  t2ergAvailable: Boolean
+  t2erg: Float
+
+  snpsEnabled: Boolean
+  snpGenotypes: [SnpGenotypeInput!]
+}
+
+input SnpGenotypeInput {
+  snpIndex: Int!
+  riskAlleles: Int!
+}
+
+enum Race {
+  AFRICAN_AMERICAN
+  CAUCASIAN
+  HISPANIC
+  OTHER
+}
+
+enum FamilyHistoryOption {
+  YES
+  NO
+  DO_NOT_KNOW
+}
+
+enum DreOption {
+  ABNORMAL
+  NORMAL
+  NOT_PERFORMED_OR_NOT_SURE
+}
+
+enum PriorBiopsyOption {
+  NEVER_HAD_PRIOR_BIOPSY
+  PRIOR_NEGATIVE_BIOPSY
+  NOT_SURE
+}
+
+enum RelativeCountOption {
+  NO
+  YES_ONE
+  YES_TWO_OR_MORE
+}
+
+enum BinaryRelativeOption {
+  NO
+  YES_AT_LEAST_ONE
+}
+
+type RiskAnalysisResponse {
+  analyzers: [AnalyzerRiskResult!]!
+  aggregate: AggregateRiskResult!
+}
+
+type AnalyzerRiskResult {
+  analyzerId: String!
+  displayName: String!
+  sourceUrl: String!
+  forwardedOnline: Boolean!
+  success: Boolean!
+  warning: String
+  risk: RiskResult
+}
+
+type RiskResult {
+  noCancerRisk: Int!
+  lowGradeRisk: Int
+  highGradeRisk: Int
+  cancerRisk: Int
+  grouped: Boolean!
+}
+
+type AggregateRiskResult {
+  noCancerRisk: Int!
+  lowGradeRisk: Int
+  highGradeRisk: Int
+  cancerRisk: Int
+  basedOnAnalyzers: Int!
 }

@@ -6,6 +6,7 @@ import {
 } from '@apollo/client/core'
 import { DefaultApolloClient } from '@vue/apollo-composable'
 import App from './App.vue'
+import '@caipira/vue-graphiql/style.css'
 
 const endpoint =
   import.meta.env.VITE_GRAPHQL_ENDPOINT ||

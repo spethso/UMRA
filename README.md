@@ -3,10 +3,16 @@
 Client-Server application for a unified medical risk analyzer.
 The application does not compute the risks itself but acts as a unified interface for third-party analyzers.
 
-- **Server**: Kotlin + Spring Boot (modulith-style package modules), GraphQL API, GraphiQL enabled
-- **Client**: Vue 3 + Apollo Client
-- **Database**: PostgreSQL
+- **Server**: Kotlin + Spring Boot (modulith-style package modules), GraphQL API
+- **Client**: Vue 3 + Apollo Client + vue-graphiql
 - **Deployment**: Docker Compose
+
+## Current Analyzer Integration
+
+- Integrated analyzer: **PCPTRC** (<https://www.riskcalc.org/PCPTRC/>)
+- Client collects PCPTRC-required factors (race, age, PSA, family history, DRE, prior biopsy, optional biomarkers).
+- Server forwards the request to the online analyzer endpoint and normalizes results into a shared response model.
+- Architecture supports adding multiple analyzers and returning an aggregated result.
 
 ## Project Structure
 
@@ -25,24 +31,7 @@ docker compose up --build
 ### URLs
 
 - Client: <http://localhost:4173>
-- GraphQL endpoint: <http://localhost:8080/graphql>
-- GraphiQL: <http://localhost:8080/graphiql>
-
-Try in GraphiQL:
-
-```graphql
-query {
-  hello
-}
-
-mutation {
-  addText(text: "First note")
-}
-
-query {
-  texts
-}
-```
+- GraphiQL (Vue): <http://localhost:4173/graphiql>
 
 ## Local Development (optional)
 
