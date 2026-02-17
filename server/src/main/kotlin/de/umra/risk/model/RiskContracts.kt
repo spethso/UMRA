@@ -41,6 +41,20 @@ enum class BinaryRelativeOption {
     YES_AT_LEAST_ONE,
 }
 
+enum class SmokingStatusOption {
+    NON_SMOKER,
+    EX_SMOKER,
+    LIGHT,
+    MODERATE,
+    HEAVY,
+}
+
+enum class DiabetesTypeOption {
+    NONE,
+    TYPE_1,
+    TYPE_2,
+}
+
 data class SnpGenotypeInput(
     val snpIndex: Int,
     val riskAlleles: Int,
@@ -72,6 +86,13 @@ data class ProstateCancerRiskInput(
     val gleasonScoreLegacy: Int? = null,
     val biopsyCancerLengthMm: Double? = null,
     val biopsyBenignLengthMm: Double? = null,
+    val ukPostcode: String? = null,
+    val smokingStatus: SmokingStatusOption? = null,
+    val diabetesType: DiabetesTypeOption? = null,
+    val manicSchizophrenia: Boolean? = false,
+    val heightCm: Int? = null,
+    val weightKg: Int? = null,
+    val qcancerYears: Int? = null,
 )
 
 data class AnalyzerInfo(
@@ -142,4 +163,11 @@ data class ProstateCancerRiskRequest(
     val gleasonScoreLegacy: Int?,
     val biopsyCancerLengthMm: Double?,
     val biopsyBenignLengthMm: Double?,
+    val ukPostcode: String?,
+    val smokingStatus: SmokingStatusOption,
+    val diabetesType: DiabetesTypeOption,
+    val manicSchizophrenia: Boolean,
+    val heightCm: Int?,
+    val weightKg: Int?,
+    val qcancerYears: Int,
 )

@@ -3,10 +3,12 @@ package de.umra.risk.service
 import de.umra.risk.model.AggregateRiskResult
 import de.umra.risk.model.AnalyzerInfo
 import de.umra.risk.model.AnalyzerRiskResult
+import de.umra.risk.model.DiabetesTypeOption
 import de.umra.risk.model.ProstateCancerRiskInput
 import de.umra.risk.model.ProstateCancerRiskRequest
 import de.umra.risk.model.RiskAnalysisResponse
 import de.umra.risk.model.SnpGenotype
+import de.umra.risk.model.SmokingStatusOption
 import org.springframework.stereotype.Service
 
 @Service
@@ -103,5 +105,12 @@ class RiskAggregationService(
                 gleasonScoreLegacy = gleasonScoreLegacy,
                 biopsyCancerLengthMm = biopsyCancerLengthMm,
                 biopsyBenignLengthMm = biopsyBenignLengthMm,
+                ukPostcode = ukPostcode,
+                smokingStatus = smokingStatus ?: SmokingStatusOption.NON_SMOKER,
+                diabetesType = diabetesType ?: DiabetesTypeOption.NONE,
+                manicSchizophrenia = manicSchizophrenia ?: false,
+                heightCm = heightCm,
+                weightKg = weightKg,
+                qcancerYears = qcancerYears ?: 10,
         )
 }

@@ -109,6 +109,13 @@ const form = ref({
   gleasonScoreLegacy: 6,
   biopsyCancerLengthMm: 10,
   biopsyBenignLengthMm: 40,
+  ukPostcode: '',
+  smokingStatus: 'NON_SMOKER',
+  diabetesType: 'NONE',
+  manicSchizophrenia: false,
+  heightCm: null,
+  weightKg: null,
+  qcancerYears: 10,
 })
 
 const toggleOptional = (key) => {
@@ -119,9 +126,15 @@ const isPcptrcSelected = computed(() => selectedAnalyzerIds.value.includes('PCPT
 const isSwopRc5Selected = computed(() => selectedAnalyzerIds.value.includes('SWOP_RC5'))
 const isSwopRc6Selected = computed(() => selectedAnalyzerIds.value.includes('SWOP_RC6'))
 const isUclaPcrcMriSelected = computed(() => selectedAnalyzerIds.value.includes('UCLA_PCRC_MRI'))
+const isQcancerSelected = computed(() => selectedAnalyzerIds.value.includes('QCANCER_10YR_PROSTATE_PSA'))
 const showProstateVolumeCc = computed(() => isSwopRc5Selected.value || isUclaPcrcMriSelected.value)
 const showOptionalDataSection = computed(
-  () => isPcptrcSelected.value || isSwopRc5Selected.value || isSwopRc6Selected.value || isUclaPcrcMriSelected.value,
+  () =>
+    isPcptrcSelected.value ||
+    isSwopRc5Selected.value ||
+    isSwopRc6Selected.value ||
+    isUclaPcrcMriSelected.value ||
+    isQcancerSelected.value,
 )
 
 const markdownConfigBasePath = `${import.meta.env.BASE_URL}config/`
@@ -205,6 +218,52 @@ const selectAllAnalyzers = () => {
 
 const selectedAnalyzerCount = computed(() => selectedAnalyzerIds.value.length)
 
+const analyzerHorizonMeta = {
+  PCPTRC: 'Short-term screening / biopsy decision support',
+  SWOP_RC2: 'Short-term biopsy risk signal',
+  SWOP_RC5: 'Short-term pathology profile (indolent vs aggressive)',
+  SWOP_RC6: 'Mid-term estimate (4-year future risk)',
+  UCLA_PCRC_MRI: 'Short-term MRI-guided biopsy decision support',
+  QCANCER_10YR_PROSTATE_PSA: 'Long-term estimate (1-15 years, typically 10-year)',
+}
+
+const analyzerHorizonGroup = {
+  PCPTRC: 'Short-term / biopsy decision',
+  SWOP_RC2: 'Short-term / biopsy decision',
+  SWOP_RC5: 'Short-term / biopsy decision',
+  UCLA_PCRC_MRI: 'Short-term / biopsy decision',
+  SWOP_RC6: 'Mid-term estimate',
+  QCANCER_10YR_PROSTATE_PSA: 'Long-term estimate',
+}
+
+const describeAnalyzerHorizon = (analyzerId) => analyzerHorizonMeta[analyzerId] ?? 'Unspecified horizon'
+
+const horizonAggregateRows = computed(() => {
+  const result = analysisResult.value
+  if (!result?.analyzers?.length) {
+    return []
+  }
+
+  const buckets = new Map()
+  result.analyzers
+    .filter((entry) => entry.success && entry.risk)
+    .forEach((entry) => {
+      const group = analyzerHorizonGroup[entry.analyzerId] ?? 'Unspecified horizon'
+      const cancerRisk = entry.risk.cancerRisk ?? (100 - entry.risk.noCancerRisk)
+      const current = buckets.get(group) ?? { sum: 0, count: 0 }
+      buckets.set(group, {
+        sum: current.sum + cancerRisk,
+        count: current.count + 1,
+      })
+    })
+
+  return Array.from(buckets.entries()).map(([group, data]) => ({
+    group,
+    analyzers: data.count,
+    avgCancerRisk: Math.round(data.sum / data.count),
+  }))
+})
+
 watch(isPcptrcSelected, (selected) => {
   if (selected) {
     return
@@ -272,6 +331,21 @@ const submitForAnalysis = async () => {
 
   if (isSwopRc5Selected.value && form.value.biopsyBenignLengthMm !== null) {
     input.biopsyBenignLengthMm = Number(form.value.biopsyBenignLengthMm)
+  }
+
+  if (isQcancerSelected.value) {
+    input.ukPostcode = form.value.ukPostcode?.trim() || null
+    input.smokingStatus = form.value.smokingStatus
+    input.diabetesType = form.value.diabetesType
+    input.manicSchizophrenia = form.value.manicSchizophrenia
+    input.qcancerYears = Number(form.value.qcancerYears)
+
+    if (form.value.heightCm !== null) {
+      input.heightCm = Number(form.value.heightCm)
+    }
+    if (form.value.weightKg !== null) {
+      input.weightKg = Number(form.value.weightKg)
+    }
   }
 
   const response = await analyzeMutate({
@@ -361,7 +435,7 @@ const submitForAnalysis = async () => {
 
         <label>
           Age
-          <input v-model.number="form.age" type="number" min="55" max="90" title="Patient age in years (55 to 90)." />
+          <input v-model.number="form.age" type="number" min="25" max="90" title="Patient age in years. Different analyzers have different valid age ranges." />
         </label>
 
         <label>
@@ -578,6 +652,56 @@ const submitForAnalysis = async () => {
           </span>
           <input v-model.number="form.biopsyBenignLengthMm" type="number" min="10" max="110" step="0.1" title="Benign tissue length in biopsy core for SWOP RC5." />
         </label>
+
+        <label v-if="isQcancerSelected">
+          UK postcode (optional, QCancer)
+          <input v-model="form.ukPostcode" type="text" maxlength="8" title="UK postcode used by QCancer; leave blank if unknown." />
+        </label>
+
+        <label v-if="isQcancerSelected">
+          Smoking status (QCancer)
+          <select v-model="form.smokingStatus" title="Smoking category used by QCancer.">
+            <option value="NON_SMOKER">Non-smoker</option>
+            <option value="EX_SMOKER">Ex-smoker</option>
+            <option value="LIGHT">Light smoker (&lt;10/day)</option>
+            <option value="MODERATE">Moderate smoker (10-19/day)</option>
+            <option value="HEAVY">Heavy smoker (20+/day)</option>
+          </select>
+        </label>
+
+        <label v-if="isQcancerSelected">
+          Diabetes type (QCancer)
+          <select v-model="form.diabetesType" title="Diabetes category used by QCancer.">
+            <option value="NONE">None</option>
+            <option value="TYPE_1">Type 1</option>
+            <option value="TYPE_2">Type 2</option>
+          </select>
+        </label>
+
+        <label v-if="isQcancerSelected">
+          Manic depression or schizophrenia (QCancer)
+          <select v-model="form.manicSchizophrenia" title="Mental health comorbidity input used by QCancer.">
+            <option :value="false">No</option>
+            <option :value="true">Yes</option>
+          </select>
+        </label>
+
+        <label v-if="isQcancerSelected">
+          Height (cm, optional QCancer)
+          <input v-model.number="form.heightCm" type="number" min="140" max="210" step="1" title="Provide with weight or leave both blank." />
+        </label>
+
+        <label v-if="isQcancerSelected">
+          Weight (kg, optional QCancer)
+          <input v-model.number="form.weightKg" type="number" min="40" max="180" step="1" title="Provide with height or leave both blank." />
+        </label>
+
+        <label v-if="isQcancerSelected">
+          QCancer horizon (years)
+          <select v-model.number="form.qcancerYears" title="QCancer can estimate risk over 1 to 15 years.">
+            <option v-for="year in 15" :key="`qcancer-year-${year}`" :value="year">{{ year }}</option>
+          </select>
+        </label>
       </div>
 
       <div v-if="isPcptrcSelected && form.detailedFamilyHistoryEnabled" class="form-grid detailed-grid">
@@ -624,6 +748,9 @@ const submitForAnalysis = async () => {
 
     <section v-if="analysisResult" class="card result-card">
       <h2>Aggregated result</h2>
+      <p class="selection-line">
+        The aggregate below combines analyzers with different horizons. Use the horizon split to compare short-term biopsy decisions vs mid-/long-term estimates.
+      </p>
       <div class="result-grid">
         <p>No cancer: {{ analysisResult.aggregate.noCancerRisk }}%</p>
         <p v-if="analysisResult.aggregate.lowGradeRisk !== null">
@@ -637,10 +764,17 @@ const submitForAnalysis = async () => {
         </p>
       </div>
 
+      <div v-if="horizonAggregateRows.length" class="result-grid">
+        <p v-for="bucket in horizonAggregateRows" :key="bucket.group">
+          {{ bucket.group }}: avg cancer risk {{ bucket.avgCancerRisk }}% ({{ bucket.analyzers }} analyzer{{ bucket.analyzers > 1 ? 's' : '' }})
+        </p>
+      </div>
+
       <h3>Analyzer details</h3>
       <ul class="detail-list">
         <li v-for="entry in analysisResult.analyzers" :key="entry.analyzerId">
           {{ entry.displayName }} — {{ entry.success ? 'Success' : 'Failed' }}
+          <span> | Horizon: {{ describeAnalyzerHorizon(entry.analyzerId) }}</span>
           <span> | Forwarded online: {{ entry.forwardedOnline ? 'Yes' : 'No' }}</span>
           <span v-if="entry.warning"> | {{ entry.warning }}</span>
           <div v-if="entry.risk">

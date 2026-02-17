@@ -44,6 +44,14 @@ input ProstateCancerRiskInput {
   gleasonScoreLegacy: Int
   biopsyCancerLengthMm: Float
   biopsyBenignLengthMm: Float
+
+  ukPostcode: String
+  smokingStatus: SmokingStatusOption
+  diabetesType: DiabetesTypeOption
+  manicSchizophrenia: Boolean
+  heightCm: Int
+  weightKg: Int
+  qcancerYears: Int
 }
 
 input SnpGenotypeInput {
@@ -90,6 +98,20 @@ enum RelativeCountOption {
 enum BinaryRelativeOption {
   NO
   YES_AT_LEAST_ONE
+}
+
+enum SmokingStatusOption {
+  NON_SMOKER
+  EX_SMOKER
+  LIGHT
+  MODERATE
+  HEAVY
+}
+
+enum DiabetesTypeOption {
+  NONE
+  TYPE_1
+  TYPE_2
 }
 
 type RiskAnalysisResponse {
