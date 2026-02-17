@@ -98,6 +98,7 @@ class RiskAggregationService(
                 ?.map { SnpGenotype(it.snpIndex, it.riskAlleles) }
                 ?: emptyList(),
                 prostateVolumeCc = prostateVolumeCc,
+                mriPiradsScore = mriPiradsScore,
                 dreVolumeClassCc = dreVolumeClassCc,
                 gleasonScoreLegacy = gleasonScoreLegacy,
                 biopsyCancerLengthMm = biopsyCancerLengthMm,

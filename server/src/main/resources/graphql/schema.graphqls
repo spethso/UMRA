@@ -39,6 +39,7 @@ input ProstateCancerRiskInput {
   snpGenotypes: [SnpGenotypeInput!]
 
   prostateVolumeCc: Float
+  mriPiradsScore: Int
   dreVolumeClassCc: Int
   gleasonScoreLegacy: Int
   biopsyCancerLengthMm: Float
@@ -52,9 +53,14 @@ input SnpGenotypeInput {
 
 enum Race {
   AFRICAN_AMERICAN
+  ASIAN
   CAUCASIAN
-  HISPANIC
+  HISPANIC_LATINO
+  MIDDLE_EASTERN_NORTH_AFRICAN
+  NATIVE_AMERICAN_OR_ALASKA_NATIVE
+  NATIVE_HAWAIIAN_OR_PACIFIC_ISLANDER
   OTHER
+  UNKNOWN
 }
 
 enum FamilyHistoryOption {

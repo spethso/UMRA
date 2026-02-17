@@ -2,9 +2,14 @@ package de.umra.risk.model
 
 enum class Race {
     AFRICAN_AMERICAN,
+    ASIAN,
     CAUCASIAN,
-    HISPANIC,
+    HISPANIC_LATINO,
+    MIDDLE_EASTERN_NORTH_AFRICAN,
+    NATIVE_AMERICAN_OR_ALASKA_NATIVE,
+    NATIVE_HAWAIIAN_OR_PACIFIC_ISLANDER,
     OTHER,
+    UNKNOWN,
 }
 
 enum class FamilyHistoryOption {
@@ -62,6 +67,7 @@ data class ProstateCancerRiskInput(
     val snpsEnabled: Boolean? = false,
     val snpGenotypes: List<SnpGenotypeInput>? = emptyList(),
     val prostateVolumeCc: Double? = null,
+    val mriPiradsScore: Int? = null,
     val dreVolumeClassCc: Int? = null,
     val gleasonScoreLegacy: Int? = null,
     val biopsyCancerLengthMm: Double? = null,
@@ -131,6 +137,7 @@ data class ProstateCancerRiskRequest(
     val snpsEnabled: Boolean,
     val snpGenotypes: List<SnpGenotype>,
     val prostateVolumeCc: Double?,
+    val mriPiradsScore: Int?,
     val dreVolumeClassCc: Int?,
     val gleasonScoreLegacy: Int?,
     val biopsyCancerLengthMm: Double?,

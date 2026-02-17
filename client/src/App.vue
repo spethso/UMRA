@@ -104,6 +104,7 @@ const form = ref({
   t2erg: null,
   snpsEnabled: false,
   prostateVolumeCc: 40,
+  mriPiradsScore: 3,
   dreVolumeClassCc: 40,
   gleasonScoreLegacy: 6,
   biopsyCancerLengthMm: 10,
@@ -116,10 +117,11 @@ const toggleOptional = (key) => {
 
 const isPcptrcSelected = computed(() => selectedAnalyzerIds.value.includes('PCPTRC'))
 const isSwopRc5Selected = computed(() => selectedAnalyzerIds.value.includes('SWOP_RC5'))
-const isSwopRc7Selected = computed(() => selectedAnalyzerIds.value.includes('SWOP_RC7'))
-const showProstateVolumeCc = computed(() => isSwopRc5Selected.value)
+const isSwopRc6Selected = computed(() => selectedAnalyzerIds.value.includes('SWOP_RC6'))
+const isUclaPcrcMriSelected = computed(() => selectedAnalyzerIds.value.includes('UCLA_PCRC_MRI'))
+const showProstateVolumeCc = computed(() => isSwopRc5Selected.value || isUclaPcrcMriSelected.value)
 const showOptionalDataSection = computed(
-  () => isPcptrcSelected.value || isSwopRc5Selected.value || isSwopRc7Selected.value,
+  () => isPcptrcSelected.value || isSwopRc5Selected.value || isSwopRc6Selected.value || isUclaPcrcMriSelected.value,
 )
 
 const markdownConfigBasePath = `${import.meta.env.BASE_URL}config/`
@@ -252,7 +254,11 @@ const submitForAnalysis = async () => {
     input.prostateVolumeCc = Number(form.value.prostateVolumeCc)
   }
 
-  if (isSwopRc7Selected.value && form.value.dreVolumeClassCc !== null) {
+  if (isUclaPcrcMriSelected.value && form.value.mriPiradsScore !== null) {
+    input.mriPiradsScore = Number(form.value.mriPiradsScore)
+  }
+
+  if (isSwopRc6Selected.value && form.value.dreVolumeClassCc !== null) {
     input.dreVolumeClassCc = Number(form.value.dreVolumeClassCc)
   }
 
@@ -339,12 +345,17 @@ const submitForAnalysis = async () => {
       <h2>Core factors</h2>
       <div class="form-grid">
         <label>
-          Race
-          <select v-model="form.race" title="Patient race category used by PCPTRC.">
+          Race / Ethnicity
+          <select v-model="form.race" title="Patient race/ethnicity category used by selected analyzers.">
             <option value="AFRICAN_AMERICAN">African American</option>
+            <option value="ASIAN">Asian</option>
             <option value="CAUCASIAN">Caucasian</option>
-            <option value="HISPANIC">Hispanic</option>
+            <option value="HISPANIC_LATINO">Hispanic / Latino</option>
+            <option value="MIDDLE_EASTERN_NORTH_AFRICAN">Middle Eastern / North African</option>
+            <option value="NATIVE_AMERICAN_OR_ALASKA_NATIVE">Native American / Alaska Native</option>
+            <option value="NATIVE_HAWAIIAN_OR_PACIFIC_ISLANDER">Native Hawaiian / Pacific Islander</option>
             <option value="OTHER">Other</option>
+            <option value="UNKNOWN">Unknown / Prefer not to say</option>
           </select>
         </label>
 
@@ -486,25 +497,42 @@ const submitForAnalysis = async () => {
         <label v-if="showProstateVolumeCc">
           <span class="label-title tooltip-label">
             <span class="tooltip-anchor" tabindex="0">
-              Prostate volume (cc, SWOP)
+              Prostate volume (cc)
               <span class="tooltip-popover">
-                Prostate gland volume in cubic centimeters used by SWOP RC5 to refine baseline risk estimation.
+                Prostate gland volume in cubic centimeters used by UCLA PCRC-MRI and SWOP RC5.
               </span>
             </span>
           </span>
-          <input v-model.number="form.prostateVolumeCc" type="number" min="10" max="150" step="1" title="Used by SWOP analyzers requiring prostate volume." />
+          <input v-model.number="form.prostateVolumeCc" type="number" min="5" max="300" step="1" title="Used by analyzers requiring prostate volume (UCLA PCRC-MRI, SWOP RC5)." />
         </label>
 
-        <label v-if="isSwopRc7Selected">
+        <label v-if="isUclaPcrcMriSelected">
           <span class="label-title tooltip-label">
             <span class="tooltip-anchor" tabindex="0">
-              DRE volume class (SWOP RC7)
+              MRI PI-RADS score (UCLA)
               <span class="tooltip-popover">
-                DRE-based prostate size class used by SWOP RC7; values correspond to the calculator&apos;s fixed volume categories.
+                PI-RADS category from multiparametric MRI. UCLA PCRC-MRI groups ≤2 as 2, then 3, 4, and 5.
               </span>
             </span>
           </span>
-          <select v-model.number="form.dreVolumeClassCc" title="DRE-based volume class used by SWOP Future Risk Calculator.">
+          <select v-model.number="form.mriPiradsScore" title="PI-RADS score used by UCLA PCRC-MRI.">
+            <option :value="2">Negative or ≤ 2</option>
+            <option :value="3">3</option>
+            <option :value="4">4</option>
+            <option :value="5">5</option>
+          </select>
+        </label>
+
+        <label v-if="isSwopRc6Selected">
+          <span class="label-title tooltip-label">
+            <span class="tooltip-anchor" tabindex="0">
+              DRE volume class (SWOP RC6)
+              <span class="tooltip-popover">
+                DRE-based prostate size class used by SWOP RC6; values correspond to the calculator&apos;s fixed volume categories.
+              </span>
+            </span>
+          </span>
+          <select v-model.number="form.dreVolumeClassCc" title="DRE-based volume class used by SWOP RC6 Future Risk Calculator.">
             <option :value="25">25</option>
             <option :value="40">40</option>
             <option :value="60">60</option>
@@ -632,7 +660,7 @@ const submitForAnalysis = async () => {
           <a href="/privacy" @click.prevent="navigateTo('/privacy')">Privacy statement</a>
           <a href="/contact" @click.prevent="navigateTo('/contact')">Contact</a>
         </nav>
-        <p class="footer-note">UMRA · Educational project · Munich, Germany</p>
+        <p class="footer-note">UMRA · Munich, Germany</p>
       </div>
     </footer>
   </main>

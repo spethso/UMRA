@@ -21,9 +21,10 @@ class RiskAnalysisGraphQlTest {
             .execute()
             .path("analyzers")
             .entityList(Any::class.java)
-            .satisfies { analyzers ->
-                assertTrue(analyzers.isNotEmpty())
-            }
+          .get()
+          .also { analyzers ->
+            assertTrue(analyzers.isNotEmpty())
+          }
     }
 
     @Test

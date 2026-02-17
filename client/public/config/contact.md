@@ -1,5 +1,5 @@
-Questions and feedback:
+# Questions and feedback
 
-- Email: umra-team@example.org
+- Email: <umra-team@example.org>
 - Course: TUM UMRA project
 - Location: Munich, Germany

@@ -174,9 +174,14 @@ class PcptrcRiskAnalyzer(
 
     private fun Race.toUiValue(): String = when (this) {
         Race.AFRICAN_AMERICAN -> "African American"
-        Race.CAUCASIAN -> "Caucasian"
-        Race.HISPANIC -> "Hispanic"
+        Race.ASIAN,
+        Race.MIDDLE_EASTERN_NORTH_AFRICAN,
+        Race.NATIVE_AMERICAN_OR_ALASKA_NATIVE,
+        Race.NATIVE_HAWAIIAN_OR_PACIFIC_ISLANDER,
+        Race.UNKNOWN,
         Race.OTHER -> "Other"
+        Race.CAUCASIAN -> "Caucasian"
+        Race.HISPANIC_LATINO -> "Hispanic"
     }
 
     private fun FamilyHistoryOption.toUiValue(): String = when (this) {

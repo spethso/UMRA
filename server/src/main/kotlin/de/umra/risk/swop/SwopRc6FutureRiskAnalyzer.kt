@@ -12,13 +12,13 @@ import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 
 @Component
-class SwopRc7FutureRiskAnalyzer(
+class SwopRc6FutureRiskAnalyzer(
     restClientBuilder: RestClient.Builder,
 ) : RiskAnalyzer {
     private val restClient = restClientBuilder.build()
 
     override fun metadata(): AnalyzerInfo = AnalyzerInfo(
-        analyzerId = "SWOP_RC7",
+        analyzerId = "SWOP_RC6",
         displayName = "SWOP Future Risk Calculator (4-year risk)",
         sourceUrl = "https://www.prostatecancer-riskcalculator.com/2012/index.php",
     )
@@ -48,7 +48,7 @@ class SwopRc7FutureRiskAnalyzer(
                 sourceUrl = metadata().sourceUrl,
                 forwardedOnline = false,
                 success = false,
-                warning = "SWOP RC7 request failed: ${it.message}",
+                warning = "SWOP RC6 request failed: ${it.message}",
                 risk = null,
             )
         }
@@ -64,7 +64,7 @@ class SwopRc7FutureRiskAnalyzer(
                 sourceUrl = metadata().sourceUrl,
                 forwardedOnline = true,
                 success = false,
-                warning = "SWOP RC7 response did not contain parsable probability values.",
+                warning = "SWOP RC6 response did not contain parsable probability values.",
                 risk = null,
             )
         }
