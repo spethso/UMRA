@@ -31,8 +31,8 @@ class RiskAnalysisGraphQlTest {
         graphQlTester
             .document(
                 """
-                mutation Analyze(${'$'}input: ProstateCancerRiskInput!) {
-                  analyzeProstateCancerRisk(input: ${'$'}input) {
+                mutation Analyze(${'$'}input: ProstateCancerRiskInput!, ${'$'}analyzerIds: [String!]) {
+                  analyzeProstateCancerRisk(input: ${'$'}input, analyzerIds: ${'$'}analyzerIds) {
                     analyzers {
                       analyzerId
                       success
@@ -72,11 +72,46 @@ class RiskAnalysisGraphQlTest {
                     "snpsEnabled" to false,
                 ),
             )
+                .variable("analyzerIds", listOf("PCPTRC"))
             .execute()
             .path("analyzeProstateCancerRisk.aggregate.noCancerRisk")
             .entity(Int::class.java)
             .satisfies { value ->
                 assertTrue(value in 0..100)
             }
+
+              graphQlTester
+                .document(
+                  """
+                  mutation Analyze(${'$'}input: ProstateCancerRiskInput!, ${'$'}analyzerIds: [String!]) {
+                    analyzeProstateCancerRisk(input: ${'$'}input, analyzerIds: ${'$'}analyzerIds) {
+                    aggregate {
+                      basedOnAnalyzers
+                    }
+                    }
+                  }
+                  """.trimIndent(),
+                )
+                .variable(
+                  "input",
+                  mapOf(
+                    "race" to "CAUCASIAN",
+                    "age" to 65,
+                    "psa" to 4.2,
+                    "familyHistory" to "NO",
+                    "dre" to "NORMAL",
+                    "priorBiopsy" to "NEVER_HAD_PRIOR_BIOPSY",
+                    "detailedFamilyHistoryEnabled" to false,
+                    "pctFreePsaAvailable" to false,
+                    "pca3Available" to false,
+                    "t2ergAvailable" to false,
+                    "snpsEnabled" to false,
+                  ),
+                )
+                .variable("analyzerIds", listOf("PCPTRC"))
+                .execute()
+                .path("analyzeProstateCancerRisk.aggregate.basedOnAnalyzers")
+                .entity(Int::class.java)
+                .isEqualTo(1)
     }
 }

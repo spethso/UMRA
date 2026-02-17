@@ -9,9 +9,12 @@ The application does not compute the risks itself but acts as a unified interfac
 
 ## Current Analyzer Integration
 
-- Integrated analyzer: **PCPTRC** (<https://www.riskcalc.org/PCPTRC/>)
+- Integrated analyzers:
+  - **PCPTRC** (<https://www.riskcalc.org/PCPTRC/>)
+  - **SWOP RC2** (<https://www.prostatecancer-riskcalculator.com/2011/en/w2.html?v=2>)
 - Client collects PCPTRC-required factors (race, age, PSA, family history, DRE, prior biopsy, optional biomarkers).
-- Server forwards the request to the online analyzer endpoint and normalizes results into a shared response model.
+- Client can select one or more analyzers to run per analysis request.
+- Server normalizes analyzer-specific outputs into a shared response model and returns aggregated risk values.
 - Architecture supports adding multiple analyzers and returning an aggregated result.
 
 ### Online Forwarding Setting

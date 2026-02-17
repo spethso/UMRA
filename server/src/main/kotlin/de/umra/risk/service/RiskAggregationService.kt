@@ -15,10 +15,21 @@ class RiskAggregationService(
 ) {
     fun availableAnalyzers(): List<AnalyzerInfo> = analyzers.map { it.metadata() }
 
-    fun analyze(input: ProstateCancerRiskInput): RiskAnalysisResponse {
+    fun analyze(input: ProstateCancerRiskInput, analyzerIds: List<String>? = null): RiskAnalysisResponse {
         val request = input.toRequest()
+        val selectedIds = analyzerIds
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?.toSet()
+            ?: emptySet()
 
-        val analyzerResults = analyzers.map { analyzer ->
+        val selectedAnalyzers = if (selectedIds.isEmpty()) {
+            analyzers
+        } else {
+            analyzers.filter { analyzer -> selectedIds.contains(analyzer.metadata().analyzerId) }
+        }
+
+        val analyzerResults = selectedAnalyzers.map { analyzer ->
             runCatching { analyzer.analyze(request) }
                 .getOrElse { exception ->
                     val metadata = analyzer.metadata()
@@ -86,5 +97,10 @@ class RiskAggregationService(
             snpGenotypes = snpGenotypes
                 ?.map { SnpGenotype(it.snpIndex, it.riskAlleles) }
                 ?: emptyList(),
+                prostateVolumeCc = prostateVolumeCc,
+                dreVolumeClassCc = dreVolumeClassCc,
+                gleasonScoreLegacy = gleasonScoreLegacy,
+                biopsyCancerLengthMm = biopsyCancerLengthMm,
+                biopsyBenignLengthMm = biopsyBenignLengthMm,
         )
 }

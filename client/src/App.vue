@@ -1,11 +1,31 @@
 <script setup>
-import { computed, ref } from 'vue'
+import MarkdownIt from 'markdown-it'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useMutation, useQuery } from '@vue/apollo-composable'
 import { gql } from '@apollo/client/core'
 import { GraphiQL } from '@caipira/vue-graphiql'
 
-const currentPath = window.location.pathname.replace(/\/+$/, '') || '/'
-const showGraphiql = currentPath === '/graphiql'
+const currentPath = ref(window.location.pathname.replace(/\/+$/, '') || '/')
+const showGraphiql = computed(() => currentPath.value === '/graphiql')
+const legalPathToKey = {
+  '/imprint': 'imprint',
+  '/privacy': 'privacy',
+  '/contact': 'contact',
+}
+const legalPageKey = computed(() => legalPathToKey[currentPath.value] ?? null)
+const showLegalPage = computed(() => legalPageKey.value !== null)
+const legalPageTitle = computed(() => {
+  switch (legalPageKey.value) {
+    case 'imprint':
+      return 'Imprint'
+    case 'privacy':
+      return 'Privacy statement'
+    case 'contact':
+      return 'Contact details'
+    default:
+      return ''
+  }
+})
 const graphiqlEndpoint =
   import.meta.env.VITE_GRAPHQL_ENDPOINT ||
   `${window.location.protocol}//${window.location.hostname}:8080/graphql`
@@ -21,8 +41,8 @@ const ANALYZERS_QUERY = gql`
 `
 
 const ANALYZE_MUTATION = gql`
-  mutation AnalyzeProstateCancerRisk($input: ProstateCancerRiskInput!) {
-    analyzeProstateCancerRisk(input: $input) {
+  mutation AnalyzeProstateCancerRisk($input: ProstateCancerRiskInput!, $analyzerIds: [String!]) {
+    analyzeProstateCancerRisk(input: $input, analyzerIds: $analyzerIds) {
       analyzers {
         analyzerId
         displayName
@@ -53,7 +73,16 @@ const { result: analyzersResult, loading: analyzersLoading, error: analyzersErro
 const { mutate: analyzeMutate, loading: analyzeLoading, error: analyzeError } = useMutation(ANALYZE_MUTATION)
 
 const analyzers = computed(() => analyzersResult.value?.analyzers ?? [])
+const allAnalyzerIds = computed(() => analyzers.value.map((analyzer) => analyzer.analyzerId))
+const selectedAnalyzerIds = ref([])
+const initializedAnalyzerSelection = ref(false)
 const analysisResult = ref(null)
+const markdown = new MarkdownIt({ html: false, linkify: true, breaks: true })
+const footerHtml = ref({
+  imprint: '',
+  privacy: '',
+  contact: '',
+})
 
 const form = ref({
   race: 'CAUCASIAN',
@@ -74,11 +103,116 @@ const form = ref({
   t2ergAvailable: false,
   t2erg: null,
   snpsEnabled: false,
+  prostateVolumeCc: 40,
+  dreVolumeClassCc: 40,
+  gleasonScoreLegacy: 6,
+  biopsyCancerLengthMm: 10,
+  biopsyBenignLengthMm: 40,
 })
 
 const toggleOptional = (key) => {
   form.value[key] = !form.value[key]
 }
+
+const isPcptrcSelected = computed(() => selectedAnalyzerIds.value.includes('PCPTRC'))
+const isSwopRc5Selected = computed(() => selectedAnalyzerIds.value.includes('SWOP_RC5'))
+const isSwopRc7Selected = computed(() => selectedAnalyzerIds.value.includes('SWOP_RC7'))
+const showProstateVolumeCc = computed(() => isSwopRc5Selected.value)
+const showOptionalDataSection = computed(
+  () => isPcptrcSelected.value || isSwopRc5Selected.value || isSwopRc7Selected.value,
+)
+
+const markdownConfigBasePath = `${import.meta.env.BASE_URL}config/`
+
+const loadFooterMarkdown = async () => {
+  const [imprint, privacy, contact] = await Promise.all([
+    fetch(`${markdownConfigBasePath}imprint.md`),
+    fetch(`${markdownConfigBasePath}privacy.md`),
+    fetch(`${markdownConfigBasePath}contact.md`),
+  ])
+
+  const [imprintText, privacyText, contactText] = await Promise.all([
+    imprint.ok ? imprint.text() : Promise.resolve('Content currently unavailable.'),
+    privacy.ok ? privacy.text() : Promise.resolve('Content currently unavailable.'),
+    contact.ok ? contact.text() : Promise.resolve('Content currently unavailable.'),
+  ])
+
+  footerHtml.value = {
+    imprint: markdown.render(imprintText),
+    privacy: markdown.render(privacyText),
+    contact: markdown.render(contactText),
+  }
+}
+
+onMounted(() => {
+  loadFooterMarkdown()
+  window.addEventListener('popstate', updateCurrentPath)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('popstate', updateCurrentPath)
+})
+
+const updateCurrentPath = () => {
+  currentPath.value = window.location.pathname.replace(/\/+$/, '') || '/'
+}
+
+const navigateTo = (path) => {
+  if (window.location.pathname !== path) {
+    window.history.pushState({}, '', path)
+    currentPath.value = path
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+
+watch(
+  allAnalyzerIds,
+  (ids) => {
+    if (!ids.length) {
+      selectedAnalyzerIds.value = []
+      initializedAnalyzerSelection.value = false
+      return
+    }
+
+    if (!initializedAnalyzerSelection.value) {
+      selectedAnalyzerIds.value = [...ids]
+      initializedAnalyzerSelection.value = true
+      return
+    }
+
+    const selectedSet = new Set(selectedAnalyzerIds.value)
+    selectedAnalyzerIds.value = ids.filter((id) => selectedSet.has(id))
+  },
+  { immediate: true },
+)
+
+const isAnalyzerSelected = (analyzerId) => selectedAnalyzerIds.value.includes(analyzerId)
+
+const toggleAnalyzerSelection = (analyzerId) => {
+  if (isAnalyzerSelected(analyzerId)) {
+    selectedAnalyzerIds.value = selectedAnalyzerIds.value.filter((id) => id !== analyzerId)
+    return
+  }
+
+  selectedAnalyzerIds.value = [...selectedAnalyzerIds.value, analyzerId]
+}
+
+const selectAllAnalyzers = () => {
+  selectedAnalyzerIds.value = [...allAnalyzerIds.value]
+}
+
+const selectedAnalyzerCount = computed(() => selectedAnalyzerIds.value.length)
+
+watch(isPcptrcSelected, (selected) => {
+  if (selected) {
+    return
+  }
+
+  form.value.detailedFamilyHistoryEnabled = false
+  form.value.pctFreePsaAvailable = false
+  form.value.pca3Available = false
+  form.value.t2ergAvailable = false
+})
 
 const submitForAnalysis = async () => {
   const input = {
@@ -114,7 +248,30 @@ const submitForAnalysis = async () => {
     input.t2erg = Number(form.value.t2erg)
   }
 
-  const response = await analyzeMutate({ input })
+  if (showProstateVolumeCc.value && form.value.prostateVolumeCc !== null) {
+    input.prostateVolumeCc = Number(form.value.prostateVolumeCc)
+  }
+
+  if (isSwopRc7Selected.value && form.value.dreVolumeClassCc !== null) {
+    input.dreVolumeClassCc = Number(form.value.dreVolumeClassCc)
+  }
+
+  if (isSwopRc5Selected.value && form.value.gleasonScoreLegacy !== null) {
+    input.gleasonScoreLegacy = Number(form.value.gleasonScoreLegacy)
+  }
+
+  if (isSwopRc5Selected.value && form.value.biopsyCancerLengthMm !== null) {
+    input.biopsyCancerLengthMm = Number(form.value.biopsyCancerLengthMm)
+  }
+
+  if (isSwopRc5Selected.value && form.value.biopsyBenignLengthMm !== null) {
+    input.biopsyBenignLengthMm = Number(form.value.biopsyBenignLengthMm)
+  }
+
+  const response = await analyzeMutate({
+    input,
+    analyzerIds: [...selectedAnalyzerIds.value],
+  })
   analysisResult.value = response?.data?.analyzeProstateCancerRisk ?? null
 }
 </script>
@@ -128,6 +285,25 @@ const submitForAnalysis = async () => {
     />
   </main>
 
+  <main v-else-if="showLegalPage" class="home legal-view">
+    <header class="page-header">
+      <h1>{{ legalPageTitle }}</h1>
+      <p class="subtitle">Legal information page</p>
+    </header>
+
+    <section class="card legal-card">
+      <div class="footer-content" v-html="footerHtml[legalPageKey]" />
+    </section>
+
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <nav class="footer-nav">
+          <a href="/" @click.prevent="navigateTo('/')">Back to risk analyzer</a>
+        </nav>
+      </div>
+    </footer>
+  </main>
+
   <main v-else class="home">
     <header class="page-header">
       <h1>Unified Prostate Risk Analyzer</h1>
@@ -135,13 +311,28 @@ const submitForAnalysis = async () => {
     </header>
 
     <section class="card">
+      <h2>Analyzer selection</h2>
       <p v-if="analyzersLoading">Loading analyzers...</p>
       <p v-else-if="analyzersError" class="error-line">Error loading analyzers: {{ analyzersError.message }}</p>
-      <ul v-else class="analyzer-list">
-        <li v-for="analyzer in analyzers" :key="analyzer.analyzerId" class="analyzer-pill">
-          {{ analyzer.displayName }} ({{ analyzer.analyzerId }})
-        </li>
-      </ul>
+      <template v-else>
+        <p class="selection-line">Selected: {{ selectedAnalyzerCount }} / {{ analyzers.length }}</p>
+        <div class="selection-actions">
+          <button type="button" class="ghost-button" @click="selectAllAnalyzers">Select all</button>
+        </div>
+        <ul class="analyzer-list">
+          <li v-for="analyzer in analyzers" :key="analyzer.analyzerId" class="analyzer-item">
+            <button
+              type="button"
+              class="analyzer-pill"
+              :class="{ selected: isAnalyzerSelected(analyzer.analyzerId) }"
+              :aria-pressed="isAnalyzerSelected(analyzer.analyzerId)"
+              @click="toggleAnalyzerSelection(analyzer.analyzerId)"
+            >
+              {{ analyzer.displayName }} ({{ analyzer.analyzerId }})
+            </button>
+          </li>
+        </ul>
+      </template>
     </section>
 
     <section class="card">
@@ -210,9 +401,9 @@ const submitForAnalysis = async () => {
       </div>
     </section>
 
-    <section class="card">
+    <section v-if="showOptionalDataSection" class="card">
       <h2>Optional data</h2>
-      <div class="optional-card-grid">
+      <div v-if="isPcptrcSelected" class="optional-card-grid">
         <button
           type="button"
           class="option-card"
@@ -263,12 +454,12 @@ const submitForAnalysis = async () => {
       </div>
 
       <div class="form-grid biomarkers-grid">
-        <label v-if="form.pctFreePsaAvailable">
+        <label v-if="isPcptrcSelected && form.pctFreePsaAvailable">
           Percent free PSA
           <input v-model.number="form.pctFreePsa" type="number" min="5" max="75" step="0.1" title="Percent free PSA value from lab result." />
         </label>
 
-        <label v-if="form.pca3Available">
+        <label v-if="isPcptrcSelected && form.pca3Available">
           <span class="label-title tooltip-label">
             <span class="tooltip-anchor" tabindex="0">
               PCA3
@@ -280,7 +471,7 @@ const submitForAnalysis = async () => {
           <input v-model.number="form.pca3" type="number" min="0.3" max="332.5" step="0.1" title="PCA3 score from urine biomarker test." />
         </label>
 
-        <label v-if="form.t2ergAvailable">
+        <label v-if="isPcptrcSelected && form.t2ergAvailable">
           <span class="label-title tooltip-label">
             <span class="tooltip-anchor" tabindex="0">
               T2:ERG
@@ -291,9 +482,77 @@ const submitForAnalysis = async () => {
           </span>
           <input v-model.number="form.t2erg" type="number" min="0" max="6031.6" step="0.1" title="T2:ERG score, only relevant when PCA3 is available." />
         </label>
+
+        <label v-if="showProstateVolumeCc">
+          <span class="label-title tooltip-label">
+            <span class="tooltip-anchor" tabindex="0">
+              Prostate volume (cc, SWOP)
+              <span class="tooltip-popover">
+                Prostate gland volume in cubic centimeters used by SWOP RC5 to refine baseline risk estimation.
+              </span>
+            </span>
+          </span>
+          <input v-model.number="form.prostateVolumeCc" type="number" min="10" max="150" step="1" title="Used by SWOP analyzers requiring prostate volume." />
+        </label>
+
+        <label v-if="isSwopRc7Selected">
+          <span class="label-title tooltip-label">
+            <span class="tooltip-anchor" tabindex="0">
+              DRE volume class (SWOP RC7)
+              <span class="tooltip-popover">
+                DRE-based prostate size class used by SWOP RC7; values correspond to the calculator&apos;s fixed volume categories.
+              </span>
+            </span>
+          </span>
+          <select v-model.number="form.dreVolumeClassCc" title="DRE-based volume class used by SWOP Future Risk Calculator.">
+            <option :value="25">25</option>
+            <option :value="40">40</option>
+            <option :value="60">60</option>
+          </select>
+        </label>
+
+        <label v-if="isSwopRc5Selected">
+          <span class="label-title tooltip-label">
+            <span class="tooltip-anchor" tabindex="0">
+              Legacy Gleason score (SWOP RC5)
+              <span class="tooltip-popover">
+                Historical Gleason category expected by SWOP RC5 for legacy model compatibility.
+              </span>
+            </span>
+          </span>
+          <select v-model.number="form.gleasonScoreLegacy" title="Legacy Gleason categories expected by SWOP RC5.">
+            <option :value="4">2+2</option>
+            <option :value="5">2+3</option>
+            <option :value="6">3+3</option>
+          </select>
+        </label>
+
+        <label v-if="isSwopRc5Selected">
+          <span class="label-title tooltip-label">
+            <span class="tooltip-anchor" tabindex="0">
+              Biopsy cancer length (mm, SWOP RC5)
+              <span class="tooltip-popover">
+                Total malignant tissue length in biopsy cores (millimeters), used by SWOP RC5.
+              </span>
+            </span>
+          </span>
+          <input v-model.number="form.biopsyCancerLengthMm" type="number" min="1" max="65" step="0.1" title="Cancer length in biopsy core for SWOP RC5." />
+        </label>
+
+        <label v-if="isSwopRc5Selected">
+          <span class="label-title tooltip-label">
+            <span class="tooltip-anchor" tabindex="0">
+              Biopsy benign length (mm, SWOP RC5)
+              <span class="tooltip-popover">
+                Total benign tissue length in biopsy cores (millimeters), used by SWOP RC5.
+              </span>
+            </span>
+          </span>
+          <input v-model.number="form.biopsyBenignLengthMm" type="number" min="10" max="110" step="0.1" title="Benign tissue length in biopsy core for SWOP RC5." />
+        </label>
       </div>
 
-      <div v-if="form.detailedFamilyHistoryEnabled" class="form-grid detailed-grid">
+      <div v-if="isPcptrcSelected && form.detailedFamilyHistoryEnabled" class="form-grid detailed-grid">
         <label>
           FDR prostate cancer &lt; 60
           <select v-model="form.fdrPcLess60" title="Count of first-degree relatives diagnosed before age 60.">
@@ -328,9 +587,10 @@ const submitForAnalysis = async () => {
     </section>
 
     <section class="actions-row">
-      <button :disabled="analyzeLoading" @click="submitForAnalysis" title="Submit all current inputs for risk analysis.">
+      <button :disabled="analyzeLoading || selectedAnalyzerCount === 0" @click="submitForAnalysis" title="Submit all current inputs for risk analysis.">
         {{ analyzeLoading ? 'Analyzing...' : 'Analyze risk' }}
       </button>
+      <p v-if="selectedAnalyzerCount === 0" class="error-line">Select at least one analyzer.</p>
       <p v-if="analyzeError" class="error-line">Error analyzing risk: {{ analyzeError.message }}</p>
     </section>
 
@@ -364,6 +624,17 @@ const submitForAnalysis = async () => {
         </li>
       </ul>
     </section>
+
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <nav class="footer-nav">
+          <a href="/imprint" @click.prevent="navigateTo('/imprint')">Imprint</a>
+          <a href="/privacy" @click.prevent="navigateTo('/privacy')">Privacy statement</a>
+          <a href="/contact" @click.prevent="navigateTo('/contact')">Contact</a>
+        </nav>
+        <p class="footer-note">UMRA · Educational project · Munich, Germany</p>
+      </div>
+    </footer>
   </main>
 </template>
 
@@ -646,13 +917,37 @@ ul {
   gap: 0.5rem;
 }
 
-.analyzer-pill {
+.analyzer-item {
   list-style: none;
+}
+
+.analyzer-pill {
   border: 1px solid #2563eb;
   background: #0f172a;
   padding: 0.3rem 0.6rem;
   border-radius: 999px;
   color: #bfdbfe;
+  font-size: 0.9rem;
+}
+
+.analyzer-pill.selected {
+  border-color: #60a5fa;
+  background: linear-gradient(135deg, rgba(29, 78, 216, 0.35), rgba(37, 99, 235, 0.2));
+}
+
+.selection-line {
+  margin: 0 0 0.6rem;
+  color: #bfdbfe;
+}
+
+.selection-actions {
+  margin-bottom: 0.75rem;
+}
+
+.ghost-button {
+  background: transparent;
+  color: #93c5fd;
+  border: 1px solid #1d4ed8;
 }
 
 .result-grid {
@@ -667,6 +962,61 @@ ul {
 
 .error-line {
   color: #fca5a5;
+}
+
+.site-footer {
+  margin-top: 1.5rem;
+  border-top: 1px solid #1d4ed8;
+  padding-top: 0.85rem;
+}
+
+.site-footer-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.footer-nav {
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.footer-nav a {
+  color: #93c5fd;
+  text-decoration: none;
+  font-size: 0.92rem;
+}
+
+.footer-nav a:hover {
+  text-decoration: underline;
+}
+
+.footer-note {
+  margin: 0;
+  color: #93c5fd;
+  font-size: 0.85rem;
+}
+
+.legal-view {
+  min-height: calc(100vh - 4rem);
+}
+
+.legal-card {
+  max-width: 900px;
+}
+
+.footer-content {
+  color: #bfdbfe;
+  font-size: 0.94rem;
+}
+
+.footer-content :deep(p) {
+  margin: 0.35rem 0;
+}
+
+.footer-content :deep(a) {
+  color: #93c5fd;
 }
 
 :global(body) {

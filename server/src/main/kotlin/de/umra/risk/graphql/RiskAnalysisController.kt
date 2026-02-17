@@ -17,6 +17,9 @@ class RiskAnalysisController(
     fun analyzers(): List<AnalyzerInfo> = riskAggregationService.availableAnalyzers()
 
     @MutationMapping
-    fun analyzeProstateCancerRisk(@Argument input: ProstateCancerRiskInput): RiskAnalysisResponse =
-        riskAggregationService.analyze(input)
+    fun analyzeProstateCancerRisk(
+        @Argument input: ProstateCancerRiskInput,
+        @Argument analyzerIds: List<String>?,
+    ): RiskAnalysisResponse =
+        riskAggregationService.analyze(input, analyzerIds)
 }

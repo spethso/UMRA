@@ -3,7 +3,7 @@ type Query {
 }
 
 type Mutation {
-  analyzeProstateCancerRisk(input: ProstateCancerRiskInput!): RiskAnalysisResponse!
+  analyzeProstateCancerRisk(input: ProstateCancerRiskInput!, analyzerIds: [String!]): RiskAnalysisResponse!
 }
 
 type AnalyzerInfo {
@@ -37,6 +37,12 @@ input ProstateCancerRiskInput {
 
   snpsEnabled: Boolean
   snpGenotypes: [SnpGenotypeInput!]
+
+  prostateVolumeCc: Float
+  dreVolumeClassCc: Int
+  gleasonScoreLegacy: Int
+  biopsyCancerLengthMm: Float
+  biopsyBenignLengthMm: Float
 }
 
 input SnpGenotypeInput {

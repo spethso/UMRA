@@ -61,6 +61,11 @@ data class ProstateCancerRiskInput(
     val t2erg: Double? = null,
     val snpsEnabled: Boolean? = false,
     val snpGenotypes: List<SnpGenotypeInput>? = emptyList(),
+    val prostateVolumeCc: Double? = null,
+    val dreVolumeClassCc: Int? = null,
+    val gleasonScoreLegacy: Int? = null,
+    val biopsyCancerLengthMm: Double? = null,
+    val biopsyBenignLengthMm: Double? = null,
 )
 
 data class AnalyzerInfo(
@@ -125,4 +130,9 @@ data class ProstateCancerRiskRequest(
     val t2erg: Double?,
     val snpsEnabled: Boolean,
     val snpGenotypes: List<SnpGenotype>,
+    val prostateVolumeCc: Double?,
+    val dreVolumeClassCc: Int?,
+    val gleasonScoreLegacy: Int?,
+    val biopsyCancerLengthMm: Double?,
+    val biopsyBenignLengthMm: Double?,
 )
