@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import MarkdownIt from 'markdown-it'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useMutation, useQuery } from '@vue/apollo-composable'
+import { useMutation, useQuery, useLazyQuery } from '@vue/apollo-composable'
 import { gql } from '@apollo/client/core'
 import { GraphiQL } from '@caipira/vue-graphiql'
 import AnalyzerSelectionCard from './components/AnalyzerSelectionCard.vue'
@@ -54,28 +54,99 @@ const ANALYZERS_QUERY = gql`
 const ANALYZE_MUTATION = gql`
   mutation AnalyzeProstateCancerRisk($input: ProstateCancerRiskInput!, $analyzerIds: [String!]) {
     analyzeProstateCancerRisk(input: $input, analyzerIds: $analyzerIds) {
-      analyzers {
-        analyzerId
-        displayName
-        sourceUrl
-        forwardedOnline
-        success
-        warning
-        risk {
+      sessionId
+      selectedAnalyzerIds
+      result {
+        analyzers {
+          analyzerId
+          displayName
+          sourceUrl
+          forwardedOnline
+          success
+          warning
+          risk {
+            noCancerRisk
+            lowGradeRisk
+            highGradeRisk
+            cancerRisk
+            grouped
+          }
+        }
+        aggregate {
           noCancerRisk
           lowGradeRisk
           highGradeRisk
           cancerRisk
-          grouped
+          basedOnAnalyzers
         }
       }
-      aggregate {
-        noCancerRisk
-        lowGradeRisk
-        highGradeRisk
-        cancerRisk
-        basedOnAnalyzers
+    }
+  }
+`
+
+const SESSION_QUERY = gql`
+  query Session($sessionId: String!) {
+    session(sessionId: $sessionId) {
+      sessionId
+      selectedAnalyzerIds
+      input {
+        race
+        age
+        psa
+        familyHistory
+        dre
+        priorBiopsy
+        detailedFamilyHistoryEnabled
+        fdrPcLess60
+        fdrPc60
+        fdrBc
+        sdr
+        pctFreePsaAvailable
+        pctFreePsa
+        pca3Available
+        pca3
+        t2ergAvailable
+        t2erg
+        snpsEnabled
+        prostateVolumeCc
+        mriPiradsScore
+        dreVolumeClassCc
+        gleasonScoreLegacy
+        biopsyCancerLengthMm
+        biopsyBenignLengthMm
+        ukPostcode
+        smokingStatus
+        diabetesType
+        manicSchizophrenia
+        heightCm
+        weightKg
+        qcancerYears
       }
+      result {
+        analyzers {
+          analyzerId
+          displayName
+          sourceUrl
+          forwardedOnline
+          success
+          warning
+          risk {
+            noCancerRisk
+            lowGradeRisk
+            highGradeRisk
+            cancerRisk
+            grouped
+          }
+        }
+        aggregate {
+          noCancerRisk
+          lowGradeRisk
+          highGradeRisk
+          cancerRisk
+          basedOnAnalyzers
+        }
+      }
+      createdAt
     }
   }
 `
@@ -83,7 +154,7 @@ const ANALYZE_MUTATION = gql`
 const { result: analyzersResult, loading: analyzersLoading, error: analyzersError } =
   useQuery<{ analyzers: AnalyzerSummary[] }>(ANALYZERS_QUERY)
 const { mutate: analyzeMutate, loading: analyzeLoading, error: analyzeError } = useMutation<
-  { analyzeProstateCancerRisk: AnalysisResult },
+  { analyzeProstateCancerRisk: { sessionId: string; selectedAnalyzerIds: string[]; result: AnalysisResult } },
   { input: Record<string, string | number | boolean | null>; analyzerIds: string[] }
 >(ANALYZE_MUTATION)
 
@@ -92,6 +163,10 @@ const allAnalyzerIds = computed<string[]>(() => analyzers.value.map((analyzer) =
 const selectedAnalyzerIds = ref<string[]>([])
 const initializedAnalyzerSelection = ref(false)
 const analysisResult = ref<AnalysisResult | null>(null)
+const sessionId = ref<string | null>(null)
+const sessionIdInput = ref('')
+const sessionLoadError = ref<string | null>(null)
+const sessionLoading = ref(false)
 const markdown = new MarkdownIt({ html: false, linkify: true, breaks: true })
 const footerHtml = ref<FooterHtml>({
   imprint: '',
@@ -227,7 +302,88 @@ const submitForAnalysis = async (): Promise<void> => {
     input,
     analyzerIds: [...selectedAnalyzerIds.value],
   })
-  analysisResult.value = response?.data?.analyzeProstateCancerRisk ?? null
+  const session = response?.data?.analyzeProstateCancerRisk
+  if (session) {
+    analysisResult.value = session.result
+    sessionId.value = session.sessionId
+  }
+}
+
+const loadSession = async (): Promise<void> => {
+  const id = sessionIdInput.value.trim()
+  if (!id) return
+  sessionLoadError.value = null
+  sessionLoading.value = true
+  try {
+    const { default: { apolloClient } } = await import('./apolloClient')
+    const { data } = await apolloClient.query({
+      query: SESSION_QUERY,
+      variables: { sessionId: id },
+      fetchPolicy: 'network-only',
+    })
+    const session = data?.session
+    if (!session) {
+      sessionLoadError.value = 'Session not found.'
+      return
+    }
+    sessionId.value = session.sessionId
+    analysisResult.value = session.result
+
+    const loadedInput = session.input
+    form.value = {
+      race: loadedInput.race ?? 'CAUCASIAN',
+      age: loadedInput.age ?? 65,
+      psa: loadedInput.psa ?? 4.2,
+      familyHistory: loadedInput.familyHistory ?? 'NO',
+      dre: loadedInput.dre ?? 'NORMAL',
+      priorBiopsy: loadedInput.priorBiopsy ?? 'NEVER_HAD_PRIOR_BIOPSY',
+      detailedFamilyHistoryEnabled: loadedInput.detailedFamilyHistoryEnabled ?? false,
+      fdrPcLess60: loadedInput.fdrPcLess60 ?? 'NO',
+      fdrPc60: loadedInput.fdrPc60 ?? 'NO',
+      fdrBc: loadedInput.fdrBc ?? 'NO',
+      sdr: loadedInput.sdr ?? 'NO',
+      pctFreePsaAvailable: loadedInput.pctFreePsaAvailable ?? false,
+      pctFreePsa: loadedInput.pctFreePsa ?? null,
+      pca3Available: loadedInput.pca3Available ?? false,
+      pca3: loadedInput.pca3 ?? null,
+      t2ergAvailable: loadedInput.t2ergAvailable ?? false,
+      t2erg: loadedInput.t2erg ?? null,
+      snpsEnabled: loadedInput.snpsEnabled ?? false,
+      prostateVolumeCc: loadedInput.prostateVolumeCc ?? 40,
+      mriPiradsScore: loadedInput.mriPiradsScore ?? 3,
+      dreVolumeClassCc: loadedInput.dreVolumeClassCc ?? 40,
+      gleasonScoreLegacy: loadedInput.gleasonScoreLegacy ?? 6,
+      biopsyCancerLengthMm: loadedInput.biopsyCancerLengthMm ?? 10,
+      biopsyBenignLengthMm: loadedInput.biopsyBenignLengthMm ?? 40,
+      ukPostcode: loadedInput.ukPostcode ?? '',
+      smokingStatus: loadedInput.smokingStatus ?? 'NON_SMOKER',
+      diabetesType: loadedInput.diabetesType ?? 'NONE',
+      manicSchizophrenia: loadedInput.manicSchizophrenia ?? false,
+      heightCm: loadedInput.heightCm ?? null,
+      weightKg: loadedInput.weightKg ?? null,
+      qcancerYears: loadedInput.qcancerYears ?? 10,
+    }
+
+    if (session.selectedAnalyzerIds?.length) {
+      selectedAnalyzerIds.value = [...session.selectedAnalyzerIds]
+    }
+  } catch (e: any) {
+    sessionLoadError.value = e.message ?? 'Failed to load session.'
+  } finally {
+    sessionLoading.value = false
+  }
+}
+
+const copied = ref(false)
+let copiedTimeout: ReturnType<typeof setTimeout> | null = null
+
+const copySessionId = async (): Promise<void> => {
+  if (sessionId.value) {
+    await navigator.clipboard.writeText(sessionId.value)
+    copied.value = true
+    if (copiedTimeout) clearTimeout(copiedTimeout)
+    copiedTimeout = setTimeout(() => { copied.value = false }, 2000)
+  }
 }
 </script>
 
@@ -265,6 +421,28 @@ const submitForAnalysis = async (): Promise<void> => {
       <p class="subtitle">Enter clinical factors and optional biomarkers to analyze risk.</p>
     </header>
 
+    <section class="card session-card">
+      <h2>Session</h2>
+      <div class="session-load-row">
+        <input
+          v-model="sessionIdInput"
+          type="text"
+          placeholder="Enter session ID to load previous analysis"
+          class="session-input"
+        />
+        <button :disabled="sessionLoading || !sessionIdInput.trim()" @click="loadSession">
+          {{ sessionLoading ? 'Loading...' : 'Load' }}
+        </button>
+      </div>
+      <p v-if="sessionLoadError" class="error-line">{{ sessionLoadError }}</p>
+      <div v-if="sessionId" class="session-id-display">
+        <span class="session-label">Session ID:</span>
+        <code class="session-id-value">{{ sessionId }}</code>
+        <button class="copy-btn" :class="{ 'copy-btn--copied': copied }" @click="copySessionId" title="Copy session ID">{{ copied ? 'Copied!' : 'Copy' }}</button>
+      </div>
+      <p v-if="sessionId" class="hint-line">Save this ID to re-access your inputs and results later.</p>
+    </section>
+
     <AnalyzerSelectionCard
       :analyzers-loading="analyzersLoading"
       :analyzers-error-message="analyzersError?.message ?? ''"
@@ -298,6 +476,7 @@ const submitForAnalysis = async (): Promise<void> => {
 
     <ResultsCard
       :analysis-result="analysisResult"
+      :session-id="sessionId"
       :horizon-aggregate-rows="horizonAggregateRows"
       :describe-analyzer-horizon="describeAnalyzerHorizon"
     />

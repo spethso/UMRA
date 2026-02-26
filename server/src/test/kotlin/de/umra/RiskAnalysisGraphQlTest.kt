@@ -1,6 +1,7 @@
 package de.umra
 
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureGraphQlTester
@@ -28,30 +29,33 @@ class RiskAnalysisGraphQlTest {
     }
 
     @Test
-    fun `risk mutation returns calculated values`() {
+    fun `risk mutation returns session with calculated values`() {
         graphQlTester
             .document(
                 """
                 mutation Analyze(${'$'}input: ProstateCancerRiskInput!, ${'$'}analyzerIds: [String!]) {
                   analyzeProstateCancerRisk(input: ${'$'}input, analyzerIds: ${'$'}analyzerIds) {
-                    analyzers {
-                      analyzerId
-                      success
-                      forwardedOnline
-                      risk {
+                    sessionId
+                    result {
+                      analyzers {
+                        analyzerId
+                        success
+                        forwardedOnline
+                        risk {
+                          noCancerRisk
+                          lowGradeRisk
+                          highGradeRisk
+                          cancerRisk
+                          grouped
+                        }
+                      }
+                      aggregate {
                         noCancerRisk
                         lowGradeRisk
                         highGradeRisk
                         cancerRisk
-                        grouped
+                        basedOnAnalyzers
                       }
-                    }
-                    aggregate {
-                      noCancerRisk
-                      lowGradeRisk
-                      highGradeRisk
-                      cancerRisk
-                      basedOnAnalyzers
                     }
                   }
                 }
@@ -75,27 +79,37 @@ class RiskAnalysisGraphQlTest {
             )
                 .variable("analyzerIds", listOf("PCPTRC"))
             .execute()
-            .path("analyzeProstateCancerRisk.aggregate.noCancerRisk")
-            .entity(Int::class.java)
-            .satisfies { value ->
-                assertTrue(value in 0..100)
+            .path("analyzeProstateCancerRisk.sessionId")
+            .entity(String::class.java)
+            .satisfies { sessionId ->
+                assertNotNull(sessionId)
+                assertTrue(sessionId.isNotEmpty())
             }
+    }
 
-              graphQlTester
-                .document(
-                  """
-                  mutation Analyze(${'$'}input: ProstateCancerRiskInput!, ${'$'}analyzerIds: [String!]) {
-                    analyzeProstateCancerRisk(input: ${'$'}input, analyzerIds: ${'$'}analyzerIds) {
-                    aggregate {
-                      basedOnAnalyzers
-                    }
+    @Test
+    fun `risk mutation returns aggregate and session can be loaded`() {
+        val sessionIdHolder = mutableListOf<String>()
+
+        graphQlTester
+            .document(
+                """
+                mutation Analyze(${'$'}input: ProstateCancerRiskInput!, ${'$'}analyzerIds: [String!]) {
+                  analyzeProstateCancerRisk(input: ${'$'}input, analyzerIds: ${'$'}analyzerIds) {
+                    sessionId
+                    result {
+                      aggregate {
+                        noCancerRisk
+                        basedOnAnalyzers
+                      }
                     }
                   }
-                  """.trimIndent(),
-                )
-                .variable(
-                  "input",
-                  mapOf(
+                }
+                """.trimIndent(),
+            )
+            .variable(
+                "input",
+                mapOf(
                     "race" to "CAUCASIAN",
                     "age" to 65,
                     "psa" to 4.2,
@@ -107,12 +121,39 @@ class RiskAnalysisGraphQlTest {
                     "pca3Available" to false,
                     "t2ergAvailable" to false,
                     "snpsEnabled" to false,
-                  ),
-                )
-                .variable("analyzerIds", listOf("PCPTRC"))
-                .execute()
-                .path("analyzeProstateCancerRisk.aggregate.basedOnAnalyzers")
-                .entity(Int::class.java)
-                .isEqualTo(1)
+                ),
+            )
+            .variable("analyzerIds", listOf("PCPTRC"))
+            .execute()
+            .path("analyzeProstateCancerRisk.sessionId")
+            .entity(String::class.java)
+            .satisfies { sessionId ->
+                sessionIdHolder.add(sessionId)
+            }
+
+        assertTrue(sessionIdHolder.isNotEmpty())
+
+        graphQlTester
+            .document(
+                """
+                query Session(${'$'}sessionId: String!) {
+                  session(sessionId: ${'$'}sessionId) {
+                    sessionId
+                    result {
+                      aggregate {
+                        noCancerRisk
+                        basedOnAnalyzers
+                      }
+                    }
+                    createdAt
+                  }
+                }
+                """.trimIndent(),
+            )
+            .variable("sessionId", sessionIdHolder[0])
+            .execute()
+            .path("session.sessionId")
+            .entity(String::class.java)
+            .isEqualTo(sessionIdHolder[0])
     }
 }

@@ -323,6 +323,88 @@ ul {
   color: #fca5a5;
 }
 
+.session-card {
+  margin-bottom: 0.5rem;
+}
+
+.session-load-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.session-input {
+  flex: 1;
+  padding: 0.45rem 0.6rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #dbeafe;
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
+.session-input::placeholder {
+  color: #64748b;
+}
+
+.session-id-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.session-label {
+  color: #93c5fd;
+  font-size: 0.9rem;
+}
+
+.session-id-value {
+  background: #0f172a;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  color: #60a5fa;
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+.copy-btn {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+  background: #1e3a5f;
+  border: 1px solid #2563eb;
+  border-radius: 4px;
+  color: #93c5fd;
+  cursor: pointer;
+}
+
+.copy-btn:hover {
+  background: #1d4ed8;
+}
+
+.copy-btn--copied {
+  background: #065f46;
+  border-color: #10b981;
+  color: #6ee7b7;
+}
+
+.hint-line {
+  color: #64748b;
+  font-size: 0.85rem;
+  margin-top: 0.3rem;
+}
+
+.result-session-id {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid #1e3a5f;
+}
+
 .site-footer {
   margin-top: 1.5rem;
   border-top: 1px solid #1d4ed8;

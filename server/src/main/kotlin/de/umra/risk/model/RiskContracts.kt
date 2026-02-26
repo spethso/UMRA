@@ -132,6 +132,14 @@ data class RiskAnalysisResponse(
     val aggregate: AggregateRiskResult,
 )
 
+data class SavedAnalysisSession(
+    val sessionId: String,
+    val input: ProstateCancerRiskInput,
+    val selectedAnalyzerIds: List<String>,
+    val result: RiskAnalysisResponse,
+    val createdAt: String,
+)
+
 data class SnpGenotype(
     val snpIndex: Int,
     val riskAlleles: Int,

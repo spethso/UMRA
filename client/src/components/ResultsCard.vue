@@ -3,6 +3,7 @@ import type { AnalysisResult, HorizonAggregateRow } from '../types/risk'
 
 defineProps<{
   analysisResult: AnalysisResult | null
+  sessionId: string | null
   horizonAggregateRows: HorizonAggregateRow[]
   describeAnalyzerHorizon: (analyzerId: string) => string
 }>()
@@ -10,6 +11,10 @@ defineProps<{
 
 <template>
   <section v-if="analysisResult" class="card result-card">
+    <div v-if="sessionId" class="result-session-id">
+      <span class="session-label">Session ID:</span>
+      <code class="session-id-value">{{ sessionId }}</code>
+    </div>
     <h2>Aggregated result</h2>
     <p class="selection-line">
       The aggregate below combines analyzers with different horizons. Use the horizon split to compare short-term biopsy decisions vs mid-/long-term estimates.

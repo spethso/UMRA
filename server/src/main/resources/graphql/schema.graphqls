@@ -1,9 +1,10 @@
 type Query {
   analyzers: [AnalyzerInfo!]!
+  session(sessionId: String!): SavedAnalysisSession
 }
 
 type Mutation {
-  analyzeProstateCancerRisk(input: ProstateCancerRiskInput!, analyzerIds: [String!]): RiskAnalysisResponse!
+  analyzeProstateCancerRisk(input: ProstateCancerRiskInput!, analyzerIds: [String!]): SavedAnalysisSession!
 }
 
 type AnalyzerInfo {
@@ -143,4 +144,52 @@ type AggregateRiskResult {
   highGradeRisk: Int
   cancerRisk: Int
   basedOnAnalyzers: Int!
+}
+
+type SavedAnalysisSession {
+  sessionId: String!
+  input: ProstateCancerRiskOutput!
+  selectedAnalyzerIds: [String!]!
+  result: RiskAnalysisResponse!
+  createdAt: String!
+}
+
+type ProstateCancerRiskOutput {
+  race: Race!
+  age: Int!
+  psa: Float!
+  familyHistory: FamilyHistoryOption!
+  dre: DreOption!
+  priorBiopsy: PriorBiopsyOption!
+  detailedFamilyHistoryEnabled: Boolean
+  fdrPcLess60: RelativeCountOption
+  fdrPc60: RelativeCountOption
+  fdrBc: BinaryRelativeOption
+  sdr: BinaryRelativeOption
+  pctFreePsaAvailable: Boolean
+  pctFreePsa: Float
+  pca3Available: Boolean
+  pca3: Float
+  t2ergAvailable: Boolean
+  t2erg: Float
+  snpsEnabled: Boolean
+  snpGenotypes: [SnpGenotypeOutput!]
+  prostateVolumeCc: Float
+  mriPiradsScore: Int
+  dreVolumeClassCc: Int
+  gleasonScoreLegacy: Int
+  biopsyCancerLengthMm: Float
+  biopsyBenignLengthMm: Float
+  ukPostcode: String
+  smokingStatus: SmokingStatusOption
+  diabetesType: DiabetesTypeOption
+  manicSchizophrenia: Boolean
+  heightCm: Int
+  weightKg: Int
+  qcancerYears: Int
+}
+
+type SnpGenotypeOutput {
+  snpIndex: Int!
+  riskAlleles: Int!
 }
