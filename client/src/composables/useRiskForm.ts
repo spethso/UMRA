@@ -1,5 +1,17 @@
+/**
+ * Helpers for constructing and defaulting the prostate-cancer risk input
+ * form used throughout the UMRA client.
+ *
+ * @module composables/useRiskForm
+ */
+
 import type { AnalyzerFlags, RiskForm } from '../types/risk'
 
+/**
+ * Create a fresh {@link RiskForm} populated with sensible clinical defaults.
+ *
+ * @returns A new `RiskForm` object — safe to mutate without side-effects.
+ */
 export function createDefaultRiskForm(): RiskForm {
   return {
     race: 'CAUCASIAN',
@@ -36,13 +48,26 @@ export function createDefaultRiskForm(): RiskForm {
   }
 }
 
-export function buildMutationInput({
-  form,
-  flags,
-}: {
-  form: RiskForm
-  flags: AnalyzerFlags
-}): Record<string, string | number | boolean | null> {
+/**
+ * Build the GraphQL mutation input for **manual** (analyzer-selection) mode.
+ *
+ * Only the fields relevant to the currently selected analyzers are included,
+ * controlled by the boolean {@link AnalyzerFlags}.
+ *
+ * @param params       - Object containing the form data and active flags.
+ * @param params.form  - Current risk-input form values.
+ * @param params.flags - Flags indicating which analyzer-specific sections are active.
+ * @returns A flat key/value record ready to be passed as the GraphQL `input` variable.
+ * @throws {Error} If `form.age` or `form.psa` is not greater than zero.
+ */
+export function buildMutationInput({ form, flags }: Readonly<{ form: Readonly<RiskForm>; flags: Readonly<AnalyzerFlags> }>): Record<string, string | number | boolean | null> {
+  if (Number(form.age) <= 0) {
+    throw new Error('Age must be greater than zero.')
+  }
+  if (Number(form.psa) <= 0) {
+    throw new Error('PSA must be greater than zero.')
+  }
+
   const input: Record<string, string | number | boolean | null> = {
     race: form.race,
     age: Number(form.age),
@@ -119,10 +144,23 @@ export function buildMutationInput({
 }
 
 /**
- * Build mutation input for guided/auto mode: sends all non-null fields
- * so the server can determine which analyzers apply.
+ * Build the GraphQL mutation input for **guided / auto** mode.
+ *
+ * Sends all non-null fields so the server can determine which analyzers
+ * apply based on the available data.
+ *
+ * @param form - Current risk-input form values (read-only).
+ * @returns A flat key/value record ready to be passed as the GraphQL `input` variable.
+ * @throws {Error} If `form.age` or `form.psa` is not greater than zero.
  */
-export function buildGuidedMutationInput(form: RiskForm): Record<string, string | number | boolean | null> {
+export function buildGuidedMutationInput(form: Readonly<RiskForm>): Record<string, string | number | boolean | null> {
+  if (Number(form.age) <= 0) {
+    throw new Error('Age must be greater than zero.')
+  }
+  if (Number(form.psa) <= 0) {
+    throw new Error('PSA must be greater than zero.')
+  }
+
   const input: Record<string, string | number | boolean | null> = {
     race: form.race,
     age: Number(form.age),

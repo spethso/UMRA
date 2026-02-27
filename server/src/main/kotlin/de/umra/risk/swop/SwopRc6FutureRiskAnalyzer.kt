@@ -8,22 +8,42 @@ import de.umra.risk.model.PriorBiopsyOption
 import de.umra.risk.model.ProstateCancerRiskRequest
 import de.umra.risk.model.RiskResult
 import de.umra.risk.service.RiskAnalyzer
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 
+/**
+ * Risk analyzer implementing the SWOP Future Risk Calculator (RC6), which
+ * estimates the 4-year probability of prostate cancer by forwarding
+ * the request to the online SWOP service.
+ */
 @Component
 class SwopRc6FutureRiskAnalyzer(
     restClientBuilder: RestClient.Builder,
 ) : RiskAnalyzer {
+    private val logger = LoggerFactory.getLogger(SwopRc6FutureRiskAnalyzer::class.java)
     private val restClient = restClientBuilder.build()
 
+    /**
+     * Returns SWOP RC6 metadata.
+     *
+     * @return [AnalyzerInfo] for SWOP Future Risk Calculator
+     */
     override fun metadata(): AnalyzerInfo = AnalyzerInfo(
         analyzerId = "SWOP_RC6",
         displayName = "SWOP Future Risk Calculator (4-year risk)",
         sourceUrl = "https://www.prostatecancer-riskcalculator.com/2012/index.php",
     )
 
+    /**
+     * Forwards patient data to the online SWOP RC6 service and parses the
+     * HTML response for probability values.
+     *
+     * @param request pre-validated patient data
+     * @return [AnalyzerRiskResult] with no-cancer, low-risk, and aggressive percentages
+     */
     override fun analyze(request: ProstateCancerRiskRequest): AnalyzerRiskResult {
+        logger.debug("SWOP RC6 analysis started")
         val volumeClass = request.dreVolumeClassCc?.takeIf { it in setOf(25, 40, 60) } ?: 40
 
         val responseBody = runCatching {
@@ -42,6 +62,7 @@ class SwopRc6FutureRiskAnalyzer(
                 .body(String::class.java)
                 ?: ""
         }.getOrElse {
+            logger.warn("SWOP RC6 request failed: {}", it.message)
             return AnalyzerRiskResult(
                 analyzerId = metadata().analyzerId,
                 displayName = metadata().displayName,
@@ -58,6 +79,7 @@ class SwopRc6FutureRiskAnalyzer(
         val aggressive = responseBody.extractPercentById("prob-aggressive-cancer")
 
         if (noCancer == null || lowRisk == null || aggressive == null) {
+            logger.warn("SWOP RC6 response did not contain parsable probability values")
             return AnalyzerRiskResult(
                 analyzerId = metadata().analyzerId,
                 displayName = metadata().displayName,

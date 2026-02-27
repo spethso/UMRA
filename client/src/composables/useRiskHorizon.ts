@@ -1,7 +1,15 @@
+/**
+ * Composable that provides risk-horizon metadata and aggregated
+ * risk-by-horizon-group rows for the results display.
+ *
+ * @module composables/useRiskHorizon
+ */
+
 import { computed, type ComputedRef, type Ref } from 'vue'
 import type { AnalysisResult, HorizonAggregateRow } from '../types/risk'
 
-const analyzerHorizonMeta: Record<string, string> = {
+/** @internal Human-readable horizon description keyed by analyzer ID. */
+const analyzerHorizonMeta: Readonly<Record<string, string>> = {
   PCPTRC: 'Short-term screening / biopsy decision support',
   SWOP_RC2: 'Short-term biopsy risk signal',
   SWOP_RC5: 'Short-term pathology profile (indolent vs aggressive)',
@@ -10,7 +18,8 @@ const analyzerHorizonMeta: Record<string, string> = {
   QCANCER_10YR_PROSTATE_PSA: 'Long-term estimate (1-15 years, typically 10-year)',
 }
 
-const analyzerHorizonGroup: Record<string, string> = {
+/** @internal Horizon group label keyed by analyzer ID. */
+const analyzerHorizonGroup: Readonly<Record<string, string>> = {
   PCPTRC: 'Short-term / biopsy decision',
   SWOP_RC2: 'Short-term / biopsy decision',
   SWOP_RC5: 'Short-term / biopsy decision',
@@ -19,10 +28,27 @@ const analyzerHorizonGroup: Record<string, string> = {
   QCANCER_10YR_PROSTATE_PSA: 'Long-term estimate',
 }
 
-export function useRiskHorizon(analysisResultRef: Ref<AnalysisResult | null>): {
+/**
+ * Provide horizon-awareness helpers derived from the current analysis result.
+ *
+ * @param analysisResultRef - Reactive ref holding the latest analysis result
+ *                            (read-only — the composable never mutates it).
+ * @returns An object containing:
+ *   - `describeAnalyzerHorizon` — returns a human-readable horizon label for
+ *     a given analyzer ID.
+ *   - `horizonAggregateRows` — computed rows grouping analyzers by time
+ *     horizon with averaged cancer-risk percentages.
+ */
+export function useRiskHorizon(analysisResultRef: Readonly<Ref<AnalysisResult | null>>): {
   describeAnalyzerHorizon: (analyzerId: string) => string
   horizonAggregateRows: ComputedRef<HorizonAggregateRow[]>
 } {
+  /**
+   * Return a short description of the time horizon for the given analyzer.
+   *
+   * @param analyzerId - Machine-readable analyzer identifier.
+   * @returns Human-readable horizon description.
+   */
   const describeAnalyzerHorizon = (analyzerId: string): string =>
     analyzerHorizonMeta[analyzerId] ?? 'Unspecified horizon'
 

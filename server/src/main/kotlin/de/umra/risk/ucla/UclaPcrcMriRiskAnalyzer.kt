@@ -10,18 +10,41 @@ import de.umra.risk.model.RiskResult
 import de.umra.risk.service.RiskAnalyzer
 import kotlin.math.exp
 import kotlin.math.roundToInt
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
+/**
+ * Risk analyzer implementing the UCLA Prostate Cancer Risk Calculator
+ * for MRI-guided biopsy (PCRC-MRI).
+ *
+ * Uses a published logistic-regression model to estimate high-grade
+ * prostate cancer probability from MRI, PSA, and clinical variables.
+ */
 @Component
 class UclaPcrcMriRiskAnalyzer : RiskAnalyzer {
+    private val logger = LoggerFactory.getLogger(UclaPcrcMriRiskAnalyzer::class.java)
 
+    /**
+     * Returns UCLA PCRC-MRI metadata.
+     *
+     * @return [AnalyzerInfo] for UCLA PCRC-MRI
+     */
     override fun metadata(): AnalyzerInfo = AnalyzerInfo(
         analyzerId = "UCLA_PCRC_MRI",
         displayName = "UCLA PCRC-MRI (MRI-guided biopsy)",
         sourceUrl = "https://www.uclahealth.org/departments/urology/iuo/research/prostate-cancer/risk-calculator-mri-guided-biopsy-pcrc-mri",
     )
 
+    /**
+     * Computes the probability of clinically significant (high-grade)
+     * prostate cancer using the PCRC-MRI model.
+     *
+     * @param request pre-validated patient data; must include prostate volume and PI-RADS score
+     * @return [AnalyzerRiskResult] with high-grade cancer probability
+     * @throws IllegalArgumentException if required MRI fields are missing or out of range
+     */
     override fun analyze(request: ProstateCancerRiskRequest): AnalyzerRiskResult {
+        logger.debug("UCLA PCRC-MRI analysis started")
         val age = request.age.toDouble()
         val psa = request.psa
         val dre = request.dre.toUclaValue()

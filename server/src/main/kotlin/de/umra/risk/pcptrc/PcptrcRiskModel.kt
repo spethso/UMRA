@@ -25,7 +25,34 @@ private data class ModelInput(
     val snps: List<SnpGenotype>,
 )
 
+/**
+ * Local implementation of the PCPTRC 2.0 logistic-regression model.
+ *
+ * Reproduces the published algorithm including Bayesian updates for
+ * optional biomarkers (percent-free PSA, PCA3, T2:ERG), detailed family
+ * history likelihood-ratio adjustments, and SNP-based corrections.
+ */
 class PcptrcRiskModel {
+
+    /**
+     * Computes a [RiskResult] from raw clinical values.
+     *
+     * @param psa          serum PSA (ng/ml)
+     * @param pctFreePsa   percent-free PSA, or `null` if unavailable
+     * @param pca3         PCA3 score, or `null`
+     * @param t2erg        T2:ERG score, or `null`
+     * @param age          patient age in years
+     * @param race         1.0 for African-American, 0.0 otherwise
+     * @param priorBiopsy  1.0 for prior negative biopsy, 0.0 for none, `null` for unsure
+     * @param dre          1.0 for abnormal DRE, 0.0 for normal, `null` for not performed
+     * @param famHistory   1.0 for family history yes, 0.0 for no, `null` for unknown
+     * @param fdrPcLess60  count of first-degree relatives diagnosed < 60, or `null`
+     * @param fdrPc60      count of first-degree relatives diagnosed ≥ 60, or `null`
+     * @param fdrBc        breast-cancer relative indicator (0 or 1), or `null`
+     * @param sdr          second-degree relative indicator (0 or 1), or `null`
+     * @param snps         list of SNP genotypes for polygenic adjustment
+     * @return [RiskResult] containing computed risk percentages
+     */
     fun calculate(
         psa: Double,
         pctFreePsa: Double?,

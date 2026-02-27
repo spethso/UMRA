@@ -10,27 +10,51 @@ import de.umra.risk.model.ProstateCancerRiskRequest
 import de.umra.risk.model.Race
 import de.umra.risk.model.RelativeCountOption
 import de.umra.risk.service.RiskAnalyzer
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.util.UriComponentsBuilder
 
+/**
+ * Risk analyzer implementing the Prostate Cancer Prevention Trial Risk
+ * Calculator 2.0 (PCPTRC).
+ *
+ * Computes low-grade / high-grade prostate cancer risk from a validated
+ * logistic-regression model replicated locally, and optionally forwards
+ * the query to the online calculator for cross-validation.
+ */
 @Component
 class PcptrcRiskAnalyzer(
     restClientBuilder: RestClient.Builder,
     @Value("\${umra.analyzers.pcptrc.online-forwarding-enabled:true}")
     private val onlineForwardingEnabled: Boolean,
 ) : RiskAnalyzer {
+    private val logger = LoggerFactory.getLogger(PcptrcRiskAnalyzer::class.java)
     private val riskModel = PcptrcRiskModel()
     private val restClient = restClientBuilder.build()
 
+    /**
+     * Returns PCPTRC analyzer metadata.
+     *
+     * @return [AnalyzerInfo] for PCPTRC 2.0
+     */
     override fun metadata(): AnalyzerInfo = AnalyzerInfo(
         analyzerId = "PCPTRC",
         displayName = "Prostate Cancer Prevention Trial Risk Calculator 2.0",
         sourceUrl = "https://www.riskcalc.org/PCPTRC/",
     )
 
+    /**
+     * Validates the request, computes risk via the local PCPTRC model, and
+     * optionally forwards the request to the online calculator.
+     *
+     * @param request pre-validated patient data
+     * @return [AnalyzerRiskResult] with computed risk percentages
+     * @throws IllegalArgumentException if PCPTRC-specific preconditions are violated
+     */
     override fun analyze(request: ProstateCancerRiskRequest): AnalyzerRiskResult {
+        logger.debug("PCPTRC analysis started")
         validate(request)
 
         val detailedFamily = request.detailedFamilyHistoryEnabled && request.race == Race.CAUCASIAN
@@ -59,6 +83,7 @@ class PcptrcRiskAnalyzer(
         val onlineForwarded = if (onlineForwardingEnabled) {
             forwardToOnlineAnalyzer(request)
         } else {
+            logger.debug("Online forwarding disabled by configuration")
             false
         }
 

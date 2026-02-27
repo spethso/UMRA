@@ -9,15 +9,36 @@ import de.umra.risk.model.ProstateCancerRiskRequest
 import de.umra.risk.model.RiskAnalysisResponse
 import de.umra.risk.model.SnpGenotype
 import de.umra.risk.model.SmokingStatusOption
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
+/**
+ * Orchestrates risk analysis by delegating to one or more [RiskAnalyzer]
+ * implementations and aggregating their results.
+ */
 @Service
 class RiskAggregationService(
     private val analyzers: List<RiskAnalyzer>,
     private val autoAnalyzerSelectionService: AutoAnalyzerSelectionService,
 ) {
+    private val logger = LoggerFactory.getLogger(RiskAggregationService::class.java)
+
+    /**
+     * Returns metadata for all registered analyzers.
+     *
+     * @return list of [AnalyzerInfo] for every known analyzer
+     */
     fun availableAnalyzers(): List<AnalyzerInfo> = analyzers.map { it.metadata() }
 
+    /**
+     * Runs the risk analysis using the selected (or automatically recommended)
+     * analyzers and returns an aggregated response.
+     *
+     * @param input       patient clinical data
+     * @param analyzerIds explicit analyzer ids, `null` for auto-selection,
+     *                    or an empty list to run all analyzers
+     * @return [RiskAnalysisResponse] containing per-analyzer and aggregate results
+     */
     fun analyze(input: ProstateCancerRiskInput, analyzerIds: List<String>? = null): RiskAnalysisResponse {
         val request = input.toRequest()
         val selectedIds = analyzerIds
@@ -31,13 +52,25 @@ class RiskAggregationService(
                 analyzers.filter { recommended.contains(it.metadata().analyzerId) }
             }
             selectedIds.isEmpty() -> analyzers
-            else -> analyzers.filter { analyzer -> selectedIds.contains(analyzer.metadata().analyzerId) }
+            else -> {
+                val matched = analyzers.filter { analyzer -> selectedIds.contains(analyzer.metadata().analyzerId) }
+                if (matched.isEmpty() && selectedIds.isNotEmpty()) {
+                    logger.warn(
+                        "None of the requested analyzerIds {} matched a known analyzer – running none",
+                        selectedIds,
+                    )
+                }
+                matched
+            }
         }
+
+        logger.info("Running {} analyzer(s): {}", selectedAnalyzers.size, selectedAnalyzers.map { it.metadata().analyzerId })
 
         val analyzerResults = selectedAnalyzers.map { analyzer ->
             runCatching { analyzer.analyze(request) }
                 .getOrElse { exception ->
                     val metadata = analyzer.metadata()
+                    logger.warn("Analyzer {} failed: {}", metadata.analyzerId, exception.message)
                     AnalyzerRiskResult(
                         analyzerId = metadata.analyzerId,
                         displayName = metadata.displayName,
@@ -56,6 +89,13 @@ class RiskAggregationService(
         )
     }
 
+    /**
+     * Computes an aggregate risk result by averaging the individual analyzer
+     * results that completed successfully.
+     *
+     * @param results per-analyzer results (may include failures)
+     * @return [AggregateRiskResult] averaging all successful risk values
+     */
     private fun aggregate(results: List<AnalyzerRiskResult>): AggregateRiskResult {
         val successful = results.mapNotNull { it.risk }
         if (successful.isEmpty()) {

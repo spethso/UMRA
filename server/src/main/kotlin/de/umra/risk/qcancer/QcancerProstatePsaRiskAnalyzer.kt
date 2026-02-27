@@ -12,22 +12,42 @@ import de.umra.risk.service.RiskAnalyzer
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import kotlin.math.roundToInt
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 
+/**
+ * Risk analyzer that forwards patient data to the QCancer 10-year
+ * prostate-with-PSA online calculator and parses the HTML response.
+ */
 @Component
 class QcancerProstatePsaRiskAnalyzer(
     restClientBuilder: RestClient.Builder,
 ) : RiskAnalyzer {
+    private val logger = LoggerFactory.getLogger(QcancerProstatePsaRiskAnalyzer::class.java)
     private val restClient = restClientBuilder.build()
 
+    /**
+     * Returns QCancer analyzer metadata.
+     *
+     * @return [AnalyzerInfo] for the QCancer 10-year prostate+PSA model
+     */
     override fun metadata(): AnalyzerInfo = AnalyzerInfo(
         analyzerId = "QCANCER_10YR_PROSTATE_PSA",
         displayName = "QCancer (10yr, prostate with PSA)",
         sourceUrl = "https://qcancer.org/10yr/prostate+psa/",
     )
 
+    /**
+     * Validates the request, posts it to the QCancer service, and parses the
+     * risk percentage from the response HTML.
+     *
+     * @param request pre-validated patient data
+     * @return [AnalyzerRiskResult] with cancer probability or failure metadata
+     * @throws IllegalArgumentException if QCancer-specific preconditions are violated
+     */
     override fun analyze(request: ProstateCancerRiskRequest): AnalyzerRiskResult {
+        logger.debug("QCancer analysis started")
         validate(request)
 
         val years = request.qcancerYears.coerceIn(1, 15)
@@ -62,6 +82,7 @@ class QcancerProstatePsaRiskAnalyzer(
                 .body(String::class.java)
                 ?: ""
         }.getOrElse {
+            logger.warn("QCancer request failed: {}", it.message)
             return AnalyzerRiskResult(
                 analyzerId = metadata().analyzerId,
                 displayName = metadata().displayName,
@@ -75,6 +96,7 @@ class QcancerProstatePsaRiskAnalyzer(
 
         val parsedPercent = responseBody.extractRiskPercent(years)
         if (parsedPercent == null) {
+            logger.warn("QCancer response did not contain a parsable risk value")
             return AnalyzerRiskResult(
                 analyzerId = metadata().analyzerId,
                 displayName = metadata().displayName,

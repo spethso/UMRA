@@ -9,18 +9,37 @@ import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.round
 import kotlin.math.roundToInt
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
+/**
+ * Risk analyzer implementing SWOP Risk Calculator 5 – distinguishes
+ * indolent from aggressive prostate cancer using biopsy and volume data.
+ */
 @Component
 class SwopRc5RiskAnalyzer : RiskAnalyzer {
+    private val logger = LoggerFactory.getLogger(SwopRc5RiskAnalyzer::class.java)
 
+    /**
+     * Returns SWOP RC5 metadata.
+     *
+     * @return [AnalyzerInfo] for SWOP Risk Calculator 5
+     */
     override fun metadata(): AnalyzerInfo = AnalyzerInfo(
         analyzerId = "SWOP_RC5",
         displayName = "SWOP Risk Calculator 5 (Indolent vs aggressive)",
         sourceUrl = "https://www.prostatecancer-riskcalculator.com/2011/en/w6.html",
     )
 
+    /**
+     * Computes indolent-vs-aggressive cancer probability.
+     *
+     * @param request pre-validated patient data including biopsy measurements
+     * @return [AnalyzerRiskResult] with indolent risk percentage
+     * @throws IllegalArgumentException if biopsy or volume parameters are outside valid ranges
+     */
     override fun analyze(request: ProstateCancerRiskRequest): AnalyzerRiskResult {
+        logger.debug("SWOP RC5 analysis started")
         val gleason = request.gleasonScoreLegacy ?: 6
         val cancerLength = request.biopsyCancerLengthMm ?: 10.0
         val benignLength = request.biopsyBenignLengthMm ?: 40.0
