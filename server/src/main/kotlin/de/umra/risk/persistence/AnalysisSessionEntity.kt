@@ -19,6 +19,9 @@ class AnalysisSessionEntity(
     @Column(columnDefinition = "TEXT")
     val selectedAnalyzerIds: String = "",
 
+    @Column(nullable = false)
+    val autoMode: Boolean = false,
+
     @Column(columnDefinition = "TEXT")
     val resultJson: String? = null,
 

@@ -8,7 +8,7 @@ import AnalyzerSelectionCard from './components/AnalyzerSelectionCard.vue'
 import CoreFactorsCard from './components/CoreFactorsCard.vue'
 import OptionalDataCard from './components/OptionalDataCard.vue'
 import ResultsCard from './components/ResultsCard.vue'
-import { createDefaultRiskForm, buildMutationInput } from './composables/useRiskForm'
+import { createDefaultRiskForm, buildMutationInput, buildGuidedMutationInput } from './composables/useRiskForm'
 import { useRiskHorizon } from './composables/useRiskHorizon'
 import type { AnalysisResult, AnalyzerSummary, FooterHtml, OptionalToggleKey, RiskForm } from './types/risk'
 import './styles/app.css'
@@ -89,6 +89,7 @@ const SESSION_QUERY = gql`
     session(sessionId: $sessionId) {
       sessionId
       selectedAnalyzerIds
+      autoMode
       input {
         race
         age
@@ -155,7 +156,7 @@ const { result: analyzersResult, loading: analyzersLoading, error: analyzersErro
   useQuery<{ analyzers: AnalyzerSummary[] }>(ANALYZERS_QUERY)
 const { mutate: analyzeMutate, loading: analyzeLoading, error: analyzeError } = useMutation<
   { analyzeProstateCancerRisk: { sessionId: string; selectedAnalyzerIds: string[]; result: AnalysisResult } },
-  { input: Record<string, string | number | boolean | null>; analyzerIds: string[] }
+  { input: Record<string, string | number | boolean | null>; analyzerIds: string[] | null }
 >(ANALYZE_MUTATION)
 
 const analyzers = computed<AnalyzerSummary[]>(() => analyzersResult.value?.analyzers ?? [])
@@ -167,6 +168,7 @@ const sessionId = ref<string | null>(null)
 const sessionIdInput = ref('')
 const sessionLoadError = ref<string | null>(null)
 const sessionLoading = ref(false)
+const analysisMode = ref<'manual' | 'guided'>('guided')
 const markdown = new MarkdownIt({ html: false, linkify: true, breaks: true })
 const footerHtml = ref<FooterHtml>({
   imprint: '',
@@ -186,8 +188,10 @@ const isSwopRc6Selected = computed(() => selectedAnalyzerIds.value.includes('SWO
 const isUclaPcrcMriSelected = computed(() => selectedAnalyzerIds.value.includes('UCLA_PCRC_MRI'))
 const isQcancerSelected = computed(() => selectedAnalyzerIds.value.includes('QCANCER_10YR_PROSTATE_PSA'))
 const showProstateVolumeCc = computed(() => isSwopRc5Selected.value || isUclaPcrcMriSelected.value)
+const isGuidedMode = computed(() => analysisMode.value === 'guided')
 const showOptionalDataSection = computed(
   () =>
+    isGuidedMode.value ||
     isPcptrcSelected.value ||
     isSwopRc5Selected.value ||
     isSwopRc6Selected.value ||
@@ -287,21 +291,27 @@ watch(isPcptrcSelected, (selected: boolean) => {
 })
 
 const submitForAnalysis = async (): Promise<void> => {
-  const input = buildMutationInput({
-    form: form.value,
-    flags: {
-      showProstateVolumeCc: showProstateVolumeCc.value,
-      isUclaPcrcMriSelected: isUclaPcrcMriSelected.value,
-      isSwopRc6Selected: isSwopRc6Selected.value,
-      isSwopRc5Selected: isSwopRc5Selected.value,
-      isQcancerSelected: isQcancerSelected.value,
-    },
-  })
+  let input: Record<string, string | number | boolean | null>
+  let analyzerIds: string[] | null
 
-  const response = await analyzeMutate({
-    input,
-    analyzerIds: [...selectedAnalyzerIds.value],
-  })
+  if (isGuidedMode.value) {
+    input = buildGuidedMutationInput(form.value)
+    analyzerIds = null
+  } else {
+    input = buildMutationInput({
+      form: form.value,
+      flags: {
+        showProstateVolumeCc: showProstateVolumeCc.value,
+        isUclaPcrcMriSelected: isUclaPcrcMriSelected.value,
+        isSwopRc6Selected: isSwopRc6Selected.value,
+        isSwopRc5Selected: isSwopRc5Selected.value,
+        isQcancerSelected: isQcancerSelected.value,
+      },
+    })
+    analyzerIds = [...selectedAnalyzerIds.value]
+  }
+
+  const response = await analyzeMutate({ input, analyzerIds })
   const session = response?.data?.analyzeProstateCancerRisk
   if (session) {
     analysisResult.value = session.result
@@ -328,6 +338,7 @@ const loadSession = async (): Promise<void> => {
     }
     sessionId.value = session.sessionId
     analysisResult.value = session.result
+    analysisMode.value = session.autoMode ? 'guided' : 'manual'
 
     const loadedInput = session.input
     form.value = {
@@ -443,7 +454,32 @@ const copySessionId = async (): Promise<void> => {
       <p v-if="sessionId" class="hint-line">Save this ID to re-access your inputs and results later.</p>
     </section>
 
+    <section class="card mode-card">
+      <h2>Analysis mode</h2>
+      <div class="mode-toggle">
+        <button
+          type="button"
+          class="mode-toggle-btn"
+          :class="{ active: analysisMode === 'guided' }"
+          @click="analysisMode = 'guided'"
+        >
+          <span class="mode-toggle-label">Guided analysis</span>
+          <span class="mode-toggle-desc">Enter all available data — server selects applicable analyzers</span>
+        </button>
+        <button
+          type="button"
+          class="mode-toggle-btn"
+          :class="{ active: analysisMode === 'manual' }"
+          @click="analysisMode = 'manual'"
+        >
+          <span class="mode-toggle-label">Manual selection</span>
+          <span class="mode-toggle-desc">Choose specific analyzers and provide their required data</span>
+        </button>
+      </div>
+    </section>
+
     <AnalyzerSelectionCard
+      v-if="!isGuidedMode"
       :analyzers-loading="analyzersLoading"
       :analyzers-error-message="analyzersError?.message ?? ''"
       :analyzers="analyzers"
@@ -463,14 +499,15 @@ const copySessionId = async (): Promise<void> => {
       :is-qcancer-selected="isQcancerSelected"
       :show-optional-data-section="showOptionalDataSection"
       :show-prostate-volume-cc="showProstateVolumeCc"
+      :guided-mode="isGuidedMode"
       @toggle-optional="toggleOptional"
     />
 
     <section class="actions-row">
-      <button :disabled="analyzeLoading || selectedAnalyzerCount === 0" @click="submitForAnalysis" title="Submit all current inputs for risk analysis.">
+      <button :disabled="analyzeLoading || (!isGuidedMode && selectedAnalyzerCount === 0)" @click="submitForAnalysis" title="Submit all current inputs for risk analysis.">
         {{ analyzeLoading ? 'Analyzing...' : 'Analyze risk' }}
       </button>
-      <p v-if="selectedAnalyzerCount === 0" class="error-line">Select at least one analyzer.</p>
+      <p v-if="!isGuidedMode && selectedAnalyzerCount === 0" class="error-line">Select at least one analyzer.</p>
       <p v-if="analyzeError" class="error-line">Error analyzing risk: {{ analyzeError.message }}</p>
     </section>
 

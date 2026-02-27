@@ -17,11 +17,13 @@ class AnalysisSessionService(
         input: ProstateCancerRiskInput,
         analyzerIds: List<String>?,
         response: RiskAnalysisResponse,
+        autoMode: Boolean = false,
     ): SavedAnalysisSession {
         val entity = AnalysisSessionEntity(
             id = UUID.randomUUID(),
             inputJson = objectMapper.writeValueAsString(input),
             selectedAnalyzerIds = objectMapper.writeValueAsString(analyzerIds ?: emptyList<String>()),
+            autoMode = autoMode,
             resultJson = objectMapper.writeValueAsString(response),
             createdAt = Instant.now(),
         )
@@ -49,6 +51,7 @@ class AnalysisSessionService(
         sessionId = entity.id.toString(),
         input = input,
         selectedAnalyzerIds = analyzerIds ?: emptyList(),
+        autoMode = entity.autoMode,
         result = response,
         createdAt = entity.createdAt.toString(),
     )

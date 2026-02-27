@@ -117,3 +117,81 @@ export function buildMutationInput({
 
   return input
 }
+
+/**
+ * Build mutation input for guided/auto mode: sends all non-null fields
+ * so the server can determine which analyzers apply.
+ */
+export function buildGuidedMutationInput(form: RiskForm): Record<string, string | number | boolean | null> {
+  const input: Record<string, string | number | boolean | null> = {
+    race: form.race,
+    age: Number(form.age),
+    psa: Number(form.psa),
+    familyHistory: form.familyHistory,
+    dre: form.dre,
+    priorBiopsy: form.priorBiopsy,
+    detailedFamilyHistoryEnabled: form.detailedFamilyHistoryEnabled,
+    pctFreePsaAvailable: form.pctFreePsaAvailable,
+    pca3Available: form.pca3Available,
+    t2ergAvailable: form.t2ergAvailable,
+    snpsEnabled: form.snpsEnabled,
+  }
+
+  if (form.detailedFamilyHistoryEnabled) {
+    input.fdrPcLess60 = form.fdrPcLess60
+    input.fdrPc60 = form.fdrPc60
+    input.fdrBc = form.fdrBc
+    input.sdr = form.sdr
+  }
+
+  if (form.pctFreePsaAvailable && form.pctFreePsa !== null) {
+    input.pctFreePsa = Number(form.pctFreePsa)
+  }
+
+  if (form.pca3Available && form.pca3 !== null) {
+    input.pca3 = Number(form.pca3)
+  }
+
+  if (form.t2ergAvailable && form.t2erg !== null) {
+    input.t2erg = Number(form.t2erg)
+  }
+
+  if (form.prostateVolumeCc !== null) {
+    input.prostateVolumeCc = Number(form.prostateVolumeCc)
+  }
+
+  if (form.mriPiradsScore !== null) {
+    input.mriPiradsScore = Number(form.mriPiradsScore)
+  }
+
+  if (form.dreVolumeClassCc !== null) {
+    input.dreVolumeClassCc = Number(form.dreVolumeClassCc)
+  }
+
+  if (form.gleasonScoreLegacy !== null) {
+    input.gleasonScoreLegacy = Number(form.gleasonScoreLegacy)
+  }
+
+  if (form.biopsyCancerLengthMm !== null) {
+    input.biopsyCancerLengthMm = Number(form.biopsyCancerLengthMm)
+  }
+
+  if (form.biopsyBenignLengthMm !== null) {
+    input.biopsyBenignLengthMm = Number(form.biopsyBenignLengthMm)
+  }
+
+  input.ukPostcode = form.ukPostcode.trim() || null
+  input.smokingStatus = form.smokingStatus
+  input.diabetesType = form.diabetesType
+  input.manicSchizophrenia = form.manicSchizophrenia
+  input.qcancerYears = Number(form.qcancerYears)
+
+  if (form.heightCm !== null) {
+    input.heightCm = Number(form.heightCm)
+  }
+  if (form.weightKg !== null) {
+    input.weightKg = Number(form.weightKg)
+  }
+
+  return input
+}

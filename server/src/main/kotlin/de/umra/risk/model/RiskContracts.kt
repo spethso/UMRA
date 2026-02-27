@@ -136,6 +136,7 @@ data class SavedAnalysisSession(
     val sessionId: String,
     val input: ProstateCancerRiskInput,
     val selectedAnalyzerIds: List<String>,
+    val autoMode: Boolean,
     val result: RiskAnalysisResponse,
     val createdAt: String,
 )

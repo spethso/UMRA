@@ -10,6 +10,7 @@ defineProps<{
   isQcancerSelected: boolean
   showOptionalDataSection: boolean
   showProstateVolumeCc: boolean
+  guidedMode: boolean
 }>()
 
 const emit = defineEmits<{
@@ -18,9 +19,10 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <section v-if="showOptionalDataSection" class="card">
-    <h2>Optional data</h2>
-    <div v-if="isPcptrcSelected" class="optional-card-grid">
+  <section v-if="showOptionalDataSection || guidedMode" class="card">
+    <h2>{{ guidedMode ? 'Additional data' : 'Optional data' }}</h2>
+    <p v-if="guidedMode" class="guided-hint">Provide as much data as available — the server will determine applicable analyzers.</p>
+    <div v-if="isPcptrcSelected || guidedMode" class="optional-card-grid">
       <button
         type="button"
         class="option-card"
@@ -71,12 +73,12 @@ const emit = defineEmits<{
     </div>
 
     <div class="form-grid biomarkers-grid">
-      <label v-if="isPcptrcSelected && form.pctFreePsaAvailable">
+      <label v-if="(isPcptrcSelected || guidedMode) && form.pctFreePsaAvailable">
         Percent free PSA
         <input v-model.number="form.pctFreePsa" type="number" min="5" max="75" step="0.1" title="Percent free PSA value from lab result." />
       </label>
 
-      <label v-if="isPcptrcSelected && form.pca3Available">
+      <label v-if="(isPcptrcSelected || guidedMode) && form.pca3Available">
         <span class="label-title tooltip-label">
           <span class="tooltip-anchor" tabindex="0">
             PCA3
@@ -88,7 +90,7 @@ const emit = defineEmits<{
         <input v-model.number="form.pca3" type="number" min="0.3" max="332.5" step="0.1" title="PCA3 score from urine biomarker test." />
       </label>
 
-      <label v-if="isPcptrcSelected && form.t2ergAvailable">
+      <label v-if="(isPcptrcSelected || guidedMode) && form.t2ergAvailable">
         <span class="label-title tooltip-label">
           <span class="tooltip-anchor" tabindex="0">
             T2:ERG
@@ -100,7 +102,7 @@ const emit = defineEmits<{
         <input v-model.number="form.t2erg" type="number" min="0" max="6031.6" step="0.1" title="T2:ERG score, only relevant when PCA3 is available." />
       </label>
 
-      <label v-if="showProstateVolumeCc">
+      <label v-if="showProstateVolumeCc || guidedMode">
         <span class="label-title tooltip-label">
           <span class="tooltip-anchor" tabindex="0">
             Prostate volume (cc)
@@ -112,7 +114,7 @@ const emit = defineEmits<{
         <input v-model.number="form.prostateVolumeCc" type="number" min="5" max="300" step="1" title="Used by analyzers requiring prostate volume (UCLA PCRC-MRI, SWOP RC5)." />
       </label>
 
-      <label v-if="isUclaPcrcMriSelected">
+      <label v-if="isUclaPcrcMriSelected || guidedMode">
         <span class="label-title tooltip-label">
           <span class="tooltip-anchor" tabindex="0">
             MRI PI-RADS score (UCLA)
@@ -129,7 +131,7 @@ const emit = defineEmits<{
         </select>
       </label>
 
-      <label v-if="isSwopRc6Selected">
+      <label v-if="isSwopRc6Selected || guidedMode">
         <span class="label-title tooltip-label">
           <span class="tooltip-anchor" tabindex="0">
             DRE volume class (SWOP RC6)
@@ -145,7 +147,7 @@ const emit = defineEmits<{
         </select>
       </label>
 
-      <label v-if="isSwopRc5Selected">
+      <label v-if="isSwopRc5Selected || guidedMode">
         <span class="label-title tooltip-label">
           <span class="tooltip-anchor" tabindex="0">
             Legacy Gleason score (SWOP RC5)
@@ -161,7 +163,7 @@ const emit = defineEmits<{
         </select>
       </label>
 
-      <label v-if="isSwopRc5Selected">
+      <label v-if="isSwopRc5Selected || guidedMode">
         <span class="label-title tooltip-label">
           <span class="tooltip-anchor" tabindex="0">
             Biopsy cancer length (mm, SWOP RC5)
@@ -173,7 +175,7 @@ const emit = defineEmits<{
         <input v-model.number="form.biopsyCancerLengthMm" type="number" min="1" max="65" step="0.1" title="Cancer length in biopsy core for SWOP RC5." />
       </label>
 
-      <label v-if="isSwopRc5Selected">
+      <label v-if="isSwopRc5Selected || guidedMode">
         <span class="label-title tooltip-label">
           <span class="tooltip-anchor" tabindex="0">
             Biopsy benign length (mm, SWOP RC5)
@@ -185,12 +187,12 @@ const emit = defineEmits<{
         <input v-model.number="form.biopsyBenignLengthMm" type="number" min="10" max="110" step="0.1" title="Benign tissue length in biopsy core for SWOP RC5." />
       </label>
 
-      <label v-if="isQcancerSelected">
+      <label v-if="isQcancerSelected || guidedMode">
         UK postcode (optional, QCancer)
         <input v-model="form.ukPostcode" type="text" maxlength="8" title="UK postcode used by QCancer; leave blank if unknown." />
       </label>
 
-      <label v-if="isQcancerSelected">
+      <label v-if="isQcancerSelected || guidedMode">
         Smoking status (QCancer)
         <select v-model="form.smokingStatus" title="Smoking category used by QCancer.">
           <option value="NON_SMOKER">Non-smoker</option>
@@ -201,7 +203,7 @@ const emit = defineEmits<{
         </select>
       </label>
 
-      <label v-if="isQcancerSelected">
+      <label v-if="isQcancerSelected || guidedMode">
         Diabetes type (QCancer)
         <select v-model="form.diabetesType" title="Diabetes category used by QCancer.">
           <option value="NONE">None</option>
@@ -210,7 +212,7 @@ const emit = defineEmits<{
         </select>
       </label>
 
-      <label v-if="isQcancerSelected">
+      <label v-if="isQcancerSelected || guidedMode">
         Manic depression or schizophrenia (QCancer)
         <select v-model="form.manicSchizophrenia" title="Mental health comorbidity input used by QCancer.">
           <option :value="false">No</option>
@@ -218,17 +220,17 @@ const emit = defineEmits<{
         </select>
       </label>
 
-      <label v-if="isQcancerSelected">
+      <label v-if="isQcancerSelected || guidedMode">
         Height (cm, optional QCancer)
         <input v-model.number="form.heightCm" type="number" min="140" max="210" step="1" title="Provide with weight or leave both blank." />
       </label>
 
-      <label v-if="isQcancerSelected">
+      <label v-if="isQcancerSelected || guidedMode">
         Weight (kg, optional QCancer)
         <input v-model.number="form.weightKg" type="number" min="40" max="180" step="1" title="Provide with height or leave both blank." />
       </label>
 
-      <label v-if="isQcancerSelected">
+      <label v-if="isQcancerSelected || guidedMode">
         QCancer horizon (years)
         <select v-model.number="form.qcancerYears" title="QCancer can estimate risk over 1 to 15 years.">
           <option v-for="year in 15" :key="`qcancer-year-${year}`" :value="year">{{ year }}</option>
@@ -236,7 +238,7 @@ const emit = defineEmits<{
       </label>
     </div>
 
-    <div v-if="isPcptrcSelected && form.detailedFamilyHistoryEnabled" class="form-grid detailed-grid">
+    <div v-if="(isPcptrcSelected || guidedMode) && form.detailedFamilyHistoryEnabled" class="form-grid detailed-grid">
       <label>
         FDR prostate cancer &lt; 60
         <select v-model="form.fdrPcLess60" title="Count of first-degree relatives diagnosed before age 60.">

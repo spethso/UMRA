@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service
 @Service
 class RiskAggregationService(
     private val analyzers: List<RiskAnalyzer>,
+    private val autoAnalyzerSelectionService: AutoAnalyzerSelectionService,
 ) {
     fun availableAnalyzers(): List<AnalyzerInfo> = analyzers.map { it.metadata() }
 
@@ -23,12 +24,14 @@ class RiskAggregationService(
             ?.map { it.trim() }
             ?.filter { it.isNotEmpty() }
             ?.toSet()
-            ?: emptySet()
 
-        val selectedAnalyzers = if (selectedIds.isEmpty()) {
-            analyzers
-        } else {
-            analyzers.filter { analyzer -> selectedIds.contains(analyzer.metadata().analyzerId) }
+        val selectedAnalyzers = when {
+            selectedIds == null -> {
+                val recommended = autoAnalyzerSelectionService.recommendIds(input).toSet()
+                analyzers.filter { recommended.contains(it.metadata().analyzerId) }
+            }
+            selectedIds.isEmpty() -> analyzers
+            else -> analyzers.filter { analyzer -> selectedIds.contains(analyzer.metadata().analyzerId) }
         }
 
         val analyzerResults = selectedAnalyzers.map { analyzer ->

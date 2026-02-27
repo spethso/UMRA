@@ -1,5 +1,6 @@
 type Query {
   analyzers: [AnalyzerInfo!]!
+  recommendedAnalyzers(input: ProstateCancerRiskInput!): [AnalyzerInfo!]!
   session(sessionId: String!): SavedAnalysisSession
 }
 
@@ -150,6 +151,7 @@ type SavedAnalysisSession {
   sessionId: String!
   input: ProstateCancerRiskOutput!
   selectedAnalyzerIds: [String!]!
+  autoMode: Boolean!
   result: RiskAnalysisResponse!
   createdAt: String!
 }

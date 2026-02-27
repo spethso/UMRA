@@ -4,6 +4,7 @@ import de.umra.risk.model.AnalyzerInfo
 import de.umra.risk.model.ProstateCancerRiskInput
 import de.umra.risk.model.SavedAnalysisSession
 import de.umra.risk.persistence.AnalysisSessionService
+import de.umra.risk.service.AutoAnalyzerSelectionService
 import de.umra.risk.service.RiskAggregationService
 import org.springframework.graphql.data.method.annotation.Argument
 import org.springframework.graphql.data.method.annotation.MutationMapping
@@ -15,9 +16,14 @@ import java.util.UUID
 class RiskAnalysisController(
     private val riskAggregationService: RiskAggregationService,
     private val analysisSessionService: AnalysisSessionService,
+    private val autoAnalyzerSelectionService: AutoAnalyzerSelectionService,
 ) {
     @QueryMapping
     fun analyzers(): List<AnalyzerInfo> = riskAggregationService.availableAnalyzers()
+
+    @QueryMapping
+    fun recommendedAnalyzers(@Argument input: ProstateCancerRiskInput): List<AnalyzerInfo> =
+        autoAnalyzerSelectionService.recommend(input)
 
     @QueryMapping
     fun session(@Argument sessionId: String): SavedAnalysisSession? =
@@ -28,7 +34,13 @@ class RiskAnalysisController(
         @Argument input: ProstateCancerRiskInput,
         @Argument analyzerIds: List<String>?,
     ): SavedAnalysisSession {
+        val autoMode = analyzerIds == null
         val response = riskAggregationService.analyze(input, analyzerIds)
-        return analysisSessionService.save(input, analyzerIds, response)
+        val effectiveIds = if (autoMode) {
+            response.analyzers.map { it.analyzerId }
+        } else {
+            analyzerIds
+        }
+        return analysisSessionService.save(input, effectiveIds, response, autoMode)
     }
 }
