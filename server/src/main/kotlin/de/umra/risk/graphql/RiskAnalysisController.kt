@@ -1,5 +1,6 @@
 package de.umra.risk.graphql
 
+import de.umra.risk.model.AnalysisSessionResponse
 import de.umra.risk.model.AnalyzerInfo
 import de.umra.risk.model.ProstateCancerRiskInput
 import de.umra.risk.model.SavedAnalysisSession
@@ -33,14 +34,32 @@ class RiskAnalysisController(
     fun analyzeProstateCancerRisk(
         @Argument input: ProstateCancerRiskInput,
         @Argument analyzerIds: List<String>?,
-    ): SavedAnalysisSession {
+        @Argument storeResult: Boolean?,
+    ): AnalysisSessionResponse {
         val autoMode = analyzerIds == null
         val response = riskAggregationService.analyze(input, analyzerIds)
         val effectiveIds = if (autoMode) {
             response.analyzers.map { it.analyzerId }
         } else {
-            analyzerIds
+            analyzerIds ?: emptyList()
         }
-        return analysisSessionService.save(input, effectiveIds, response, autoMode)
+        val store = storeResult ?: false
+        val sessionId = if (store) {
+            val saved = analysisSessionService.save(input, effectiveIds, response, autoMode)
+            saved.sessionId
+        } else {
+            null
+        }
+        return AnalysisSessionResponse(
+            sessionId = sessionId,
+            selectedAnalyzerIds = effectiveIds,
+            autoMode = autoMode,
+            stored = store,
+            result = response,
+        )
     }
+
+    @MutationMapping
+    fun deleteSession(@Argument sessionId: String): Boolean =
+        analysisSessionService.deleteById(UUID.fromString(sessionId))
 }

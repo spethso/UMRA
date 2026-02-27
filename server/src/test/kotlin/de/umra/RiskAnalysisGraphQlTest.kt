@@ -33,9 +33,10 @@ class RiskAnalysisGraphQlTest {
         graphQlTester
             .document(
                 """
-                mutation Analyze(${'$'}input: ProstateCancerRiskInput!, ${'$'}analyzerIds: [String!]) {
-                  analyzeProstateCancerRisk(input: ${'$'}input, analyzerIds: ${'$'}analyzerIds) {
+                mutation Analyze(${'$'}input: ProstateCancerRiskInput!, ${'$'}analyzerIds: [String!], ${'$'}storeResult: Boolean) {
+                  analyzeProstateCancerRisk(input: ${'$'}input, analyzerIds: ${'$'}analyzerIds, storeResult: ${'$'}storeResult) {
                     sessionId
+                    stored
                     result {
                       analyzers {
                         analyzerId
@@ -78,25 +79,26 @@ class RiskAnalysisGraphQlTest {
                 ),
             )
                 .variable("analyzerIds", listOf("PCPTRC"))
+                .variable("storeResult", false)
             .execute()
-            .path("analyzeProstateCancerRisk.sessionId")
-            .entity(String::class.java)
-            .satisfies { sessionId ->
-                assertNotNull(sessionId)
-                assertTrue(sessionId.isNotEmpty())
+            .path("analyzeProstateCancerRisk.stored")
+            .entity(Boolean::class.java)
+            .satisfies { stored ->
+                assertTrue(!stored)
             }
     }
 
     @Test
-    fun `risk mutation returns aggregate and session can be loaded`() {
+    fun `risk mutation stores session and it can be loaded`() {
         val sessionIdHolder = mutableListOf<String>()
 
         graphQlTester
             .document(
                 """
-                mutation Analyze(${'$'}input: ProstateCancerRiskInput!, ${'$'}analyzerIds: [String!]) {
-                  analyzeProstateCancerRisk(input: ${'$'}input, analyzerIds: ${'$'}analyzerIds) {
+                mutation Analyze(${'$'}input: ProstateCancerRiskInput!, ${'$'}analyzerIds: [String!], ${'$'}storeResult: Boolean) {
+                  analyzeProstateCancerRisk(input: ${'$'}input, analyzerIds: ${'$'}analyzerIds, storeResult: ${'$'}storeResult) {
                     sessionId
+                    stored
                     result {
                       aggregate {
                         noCancerRisk
@@ -124,6 +126,7 @@ class RiskAnalysisGraphQlTest {
                 ),
             )
             .variable("analyzerIds", listOf("PCPTRC"))
+            .variable("storeResult", true)
             .execute()
             .path("analyzeProstateCancerRisk.sessionId")
             .entity(String::class.java)

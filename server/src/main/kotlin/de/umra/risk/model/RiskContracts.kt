@@ -132,6 +132,14 @@ data class RiskAnalysisResponse(
     val aggregate: AggregateRiskResult,
 )
 
+data class AnalysisSessionResponse(
+    val sessionId: String?,
+    val selectedAnalyzerIds: List<String>,
+    val autoMode: Boolean,
+    val stored: Boolean,
+    val result: RiskAnalysisResponse,
+)
+
 data class SavedAnalysisSession(
     val sessionId: String,
     val input: ProstateCancerRiskInput,

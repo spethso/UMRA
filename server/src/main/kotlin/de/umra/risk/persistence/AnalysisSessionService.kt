@@ -31,6 +31,12 @@ class AnalysisSessionService(
         return toModel(saved, input, analyzerIds, response)
     }
 
+    fun deleteById(id: UUID): Boolean {
+        if (!repository.existsById(id)) return false
+        repository.deleteById(id)
+        return true
+    }
+
     fun findById(id: UUID): SavedAnalysisSession? {
         val entity = repository.findById(id).orElse(null) ?: return null
         val input = objectMapper.readValue(entity.inputJson, ProstateCancerRiskInput::class.java)

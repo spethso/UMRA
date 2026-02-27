@@ -52,10 +52,11 @@ const ANALYZERS_QUERY = gql`
 `
 
 const ANALYZE_MUTATION = gql`
-  mutation AnalyzeProstateCancerRisk($input: ProstateCancerRiskInput!, $analyzerIds: [String!]) {
-    analyzeProstateCancerRisk(input: $input, analyzerIds: $analyzerIds) {
+  mutation AnalyzeProstateCancerRisk($input: ProstateCancerRiskInput!, $analyzerIds: [String!], $storeResult: Boolean) {
+    analyzeProstateCancerRisk(input: $input, analyzerIds: $analyzerIds, storeResult: $storeResult) {
       sessionId
       selectedAnalyzerIds
+      stored
       result {
         analyzers {
           analyzerId
@@ -81,6 +82,12 @@ const ANALYZE_MUTATION = gql`
         }
       }
     }
+  }
+`
+
+const DELETE_SESSION_MUTATION = gql`
+  mutation DeleteSession($sessionId: String!) {
+    deleteSession(sessionId: $sessionId)
   }
 `
 
@@ -155,9 +162,13 @@ const SESSION_QUERY = gql`
 const { result: analyzersResult, loading: analyzersLoading, error: analyzersError } =
   useQuery<{ analyzers: AnalyzerSummary[] }>(ANALYZERS_QUERY)
 const { mutate: analyzeMutate, loading: analyzeLoading, error: analyzeError } = useMutation<
-  { analyzeProstateCancerRisk: { sessionId: string; selectedAnalyzerIds: string[]; result: AnalysisResult } },
-  { input: Record<string, string | number | boolean | null>; analyzerIds: string[] | null }
+  { analyzeProstateCancerRisk: { sessionId: string | null; selectedAnalyzerIds: string[]; stored: boolean; result: AnalysisResult } },
+  { input: Record<string, string | number | boolean | null>; analyzerIds: string[] | null; storeResult: boolean }
 >(ANALYZE_MUTATION)
+const { mutate: deleteMutate } = useMutation<
+  { deleteSession: boolean },
+  { sessionId: string }
+>(DELETE_SESSION_MUTATION)
 
 const analyzers = computed<AnalyzerSummary[]>(() => analyzersResult.value?.analyzers ?? [])
 const allAnalyzerIds = computed<string[]>(() => analyzers.value.map((analyzer) => analyzer.analyzerId))
@@ -169,6 +180,9 @@ const sessionIdInput = ref('')
 const sessionLoadError = ref<string | null>(null)
 const sessionLoading = ref(false)
 const analysisMode = ref<'manual' | 'guided'>('guided')
+const storeConsent = ref(false)
+const deleteLoading = ref(false)
+const deleteResult = ref<{ success: boolean; message: string } | null>(null)
 const markdown = new MarkdownIt({ html: false, linkify: true, breaks: true })
 const footerHtml = ref<FooterHtml>({
   imprint: '',
@@ -311,11 +325,34 @@ const submitForAnalysis = async (): Promise<void> => {
     analyzerIds = [...selectedAnalyzerIds.value]
   }
 
-  const response = await analyzeMutate({ input, analyzerIds })
+  const response = await analyzeMutate({ input, analyzerIds, storeResult: storeConsent.value })
   const session = response?.data?.analyzeProstateCancerRisk
   if (session) {
     analysisResult.value = session.result
-    sessionId.value = session.sessionId
+    sessionId.value = session.stored ? session.sessionId : null
+  }
+}
+
+const deleteSessionData = async (): Promise<void> => {
+  const id = sessionIdInput.value.trim()
+  if (!id) return
+  deleteLoading.value = true
+  deleteResult.value = null
+  try {
+    const response = await deleteMutate({ sessionId: id })
+    const deleted = response?.data?.deleteSession
+    if (deleted) {
+      deleteResult.value = { success: true, message: 'Session data deleted successfully.' }
+      if (sessionId.value === id) {
+        sessionId.value = null
+      }
+    } else {
+      deleteResult.value = { success: false, message: 'Session not found.' }
+    }
+  } catch (e: any) {
+    deleteResult.value = { success: false, message: e.message ?? 'Failed to delete session.' }
+  } finally {
+    deleteLoading.value = false
   }
 }
 
@@ -339,6 +376,7 @@ const loadSession = async (): Promise<void> => {
     sessionId.value = session.sessionId
     analysisResult.value = session.result
     analysisMode.value = session.autoMode ? 'guided' : 'manual'
+    storeConsent.value = true
 
     const loadedInput = session.input
     form.value = {
@@ -433,19 +471,45 @@ const copySessionId = async (): Promise<void> => {
     </header>
 
     <section class="card session-card">
-      <h2>Session</h2>
+      <h2>Data storage</h2>
+
+      <div class="consent-toggle-row">
+        <button
+          type="button"
+          class="consent-toggle"
+          :class="{ active: storeConsent }"
+          role="switch"
+          :aria-checked="storeConsent"
+          @click="storeConsent = !storeConsent"
+        >
+          <span class="consent-toggle-track">
+            <span class="consent-toggle-thumb" />
+          </span>
+          <span class="consent-toggle-text">{{ storeConsent ? 'Storage enabled' : 'Storage disabled' }}</span>
+        </button>
+      </div>
+
+      <div v-if="storeConsent" class="consent-notice">
+        <p><strong>Consent notice:</strong> By enabling storage you agree that the medical data you enter and the analysis results will be stored on the server and associated with a session ID. You can use this ID to retrieve or delete your data at any time. No personal identification information beyond what you enter is collected.</p>
+      </div>
+
       <div class="session-load-row">
         <input
           v-model="sessionIdInput"
           type="text"
-          placeholder="Enter session ID to load previous analysis"
+          placeholder="Enter session ID to load or delete"
           class="session-input"
         />
         <button :disabled="sessionLoading || !sessionIdInput.trim()" @click="loadSession">
           {{ sessionLoading ? 'Loading...' : 'Load' }}
         </button>
+        <button class="delete-btn" :disabled="deleteLoading || !sessionIdInput.trim()" @click="deleteSessionData">
+          {{ deleteLoading ? 'Deleting...' : 'Delete' }}
+        </button>
       </div>
       <p v-if="sessionLoadError" class="error-line">{{ sessionLoadError }}</p>
+      <p v-if="deleteResult" :class="deleteResult.success ? 'success-line' : 'error-line'">{{ deleteResult.message }}</p>
+
       <div v-if="sessionId" class="session-id-display">
         <span class="session-label">Session ID:</span>
         <code class="session-id-value">{{ sessionId }}</code>

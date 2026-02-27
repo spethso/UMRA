@@ -5,7 +5,8 @@ type Query {
 }
 
 type Mutation {
-  analyzeProstateCancerRisk(input: ProstateCancerRiskInput!, analyzerIds: [String!]): SavedAnalysisSession!
+  analyzeProstateCancerRisk(input: ProstateCancerRiskInput!, analyzerIds: [String!], storeResult: Boolean): AnalysisSessionResponse!
+  deleteSession(sessionId: String!): Boolean!
 }
 
 type AnalyzerInfo {
@@ -145,6 +146,14 @@ type AggregateRiskResult {
   highGradeRisk: Int
   cancerRisk: Int
   basedOnAnalyzers: Int!
+}
+
+type AnalysisSessionResponse {
+  sessionId: String
+  selectedAnalyzerIds: [String!]!
+  autoMode: Boolean!
+  stored: Boolean!
+  result: RiskAnalysisResponse!
 }
 
 type SavedAnalysisSession {
