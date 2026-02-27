@@ -1,8 +1,5 @@
 /**
- * Composable that manages client-side routing state and navigation helpers.
- *
- * Uses the History API to provide SPA-style navigation without a full
- * router library.
+ * Manages application routing state and navigation helpers.
  *
  * @module composables/useNavigation
  */

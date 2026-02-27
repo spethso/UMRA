@@ -4,8 +4,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
 /**
- * Spring Data JPA repository for [AnalysisSessionEntity].
- *
- * Standard CRUD operations are inherited from [JpaRepository].
+ * Data-access interface for persisting and retrieving analysis sessions.
  */
 interface AnalysisSessionRepository : JpaRepository<AnalysisSessionEntity, UUID>

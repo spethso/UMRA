@@ -1,9 +1,8 @@
 /**
  * Application bootstrap.
  *
- * Creates the root Vue 3 application, provides the shared Apollo Client
- * instance via {@link DefaultApolloClient}, and mounts the {@link App}
- * component to the `#app` DOM element.
+ * Initialises the application, wires up the GraphQL client,
+ * and mounts the root component.
  *
  * @module main
  */

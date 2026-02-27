@@ -14,19 +14,18 @@ import type { AnalysisResult, RiskForm } from '../types/risk'
 import { logDebug, logInfo, logWarn, logError } from '../utils/logger'
 
 /**
- * External reactive references that the session manager needs to write to
- * when a stored session is loaded.
+ * Dependencies that the session manager writes to when a stored session is loaded.
  */
 export interface UseSessionManagerDeps {
-  /** Reactive reference to the current analysis result. */
+  /** The current analysis result. */
   readonly analysisResult: Ref<AnalysisResult | null>
-  /** Reactive reference to the risk-input form. */
+  /** The risk-input form state. */
   readonly form: Ref<RiskForm>
-  /** Reactive reference to the current analysis mode. */
+  /** The current analysis mode. */
   readonly analysisMode: Ref<'manual' | 'guided'>
-  /** Reactive reference to the user's storage-consent flag. */
+  /** The user's storage-consent flag. */
   readonly storeConsent: Ref<boolean>
-  /** Reactive reference to the list of selected analyzer IDs. */
+  /** The list of selected analyzer IDs. */
   readonly selectedAnalyzerIds: Ref<string[]>
 }
 
@@ -57,15 +56,11 @@ export interface UseSessionManagerReturn {
 const CTX = 'SessionManager'
 
 /**
- * Create session-management state and actions.
+ * Creates session-management state and actions.
  *
- * Must be called inside a Vue component's `setup` context so that the
- * internal `useMutation` call is properly associated with the Apollo
- * provider.
- *
- * @param deps - External reactive refs that are updated when a session is
+ * @param deps - Application state that is updated when a session is
  *               loaded (form data, analysis results, mode, etc.).
- * @returns Reactive refs and async action functions for session management.
+ * @returns State and async action functions for session management.
  */
 export function useSessionManager(deps: Readonly<UseSessionManagerDeps>): UseSessionManagerReturn {
   const { mutate: deleteMutate } = useMutation<

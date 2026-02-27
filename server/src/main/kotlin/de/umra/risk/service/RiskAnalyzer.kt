@@ -8,8 +8,7 @@ import de.umra.risk.model.ProstateCancerRiskRequest
  * Contract for a single prostate-cancer risk analyzer.
  *
  * Each implementation encapsulates a specific risk model or external
- * calculator and is auto-discovered by Spring as a bean of type
- * `List<RiskAnalyzer>`.
+ * calculator and is discovered automatically at application startup.
  */
 interface RiskAnalyzer {
 

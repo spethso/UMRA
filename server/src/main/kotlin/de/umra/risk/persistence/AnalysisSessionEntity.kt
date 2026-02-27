@@ -8,15 +8,13 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * JPA entity representing a persisted analysis session.
- *
- * All fields are `val` to enforce immutability after creation.
+ * Persisted record of a completed risk-analysis session.
  *
  * @property id                  unique session identifier
- * @property inputJson           JSON-serialized patient input
- * @property selectedAnalyzerIds JSON array of analyzer ids used
+ * @property inputJson           serialised patient input
+ * @property selectedAnalyzerIds identifiers of the analyzers that were used
  * @property autoMode            whether analyzers were auto-selected
- * @property resultJson          JSON-serialized analysis response
+ * @property resultJson          serialised analysis response
  * @property createdAt           timestamp when the session was created
  */
 @Entity

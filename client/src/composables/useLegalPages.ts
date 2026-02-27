@@ -1,9 +1,6 @@
 /**
- * Composable that manages legal / informational page content
+ * Manages legal / informational page content
  * (imprint, privacy statement, contact details).
- *
- * Markdown source files are fetched from `public/config/` at runtime and
- * rendered to HTML via `markdown-it`.
  *
  * @module composables/useLegalPages
  */
@@ -35,12 +32,10 @@ export interface UseLegalPagesReturn {
 const CTX = 'LegalPages'
 
 /**
- * Provides reactive legal-page state and a loader for the markdown content.
+ * Provides legal-page state and a loader for the page content.
  *
- * @param currentPath - A reactive ref holding the current normalised pathname.
- *                      Must be a `Readonly<Ref<string>>` so the composable
- *                      cannot accidentally mutate the navigation state.
- * @returns Reactive computed values and a markdown loader function.
+ * @param currentPath - The current normalised pathname (read-only).
+ * @returns Legal-page state and a content loader function.
  */
 export function useLegalPages(currentPath: Readonly<Ref<string>>): UseLegalPagesReturn {
   const markdown = new MarkdownIt({ html: false, linkify: true, breaks: true })

@@ -16,7 +16,7 @@ import org.springframework.stereotype.Controller
 import java.util.UUID
 
 /**
- * GraphQL controller that exposes risk-analysis queries and mutations.
+ * API entry point for risk-analysis queries and mutations.
  *
  * All session-id parameters are validated as well-formed UUIDs before
  * being forwarded to the persistence layer.

@@ -1,7 +1,7 @@
 /**
- * Apollo Client singleton used by the UMRA application.
+ * GraphQL client used by the UMRA application.
  *
- * The GraphQL endpoint is resolved from the `VITE_GRAPHQL_ENDPOINT`
+ * The endpoint is resolved from the `VITE_GRAPHQL_ENDPOINT`
  * environment variable, falling back to the current host on port 8080.
  *
  * @module apolloClient
@@ -23,10 +23,8 @@ const httpLink = createHttpLink({
 })
 
 /**
- * Pre-configured Apollo Client instance.
- *
- * Imported directly by composables that need to run imperative queries
- * outside of the Vue Apollo composable hooks (e.g. session loading).
+ * Shared GraphQL client instance, available for standalone queries
+ * (e.g. session loading).
  */
 const apolloClient = new ApolloClient({
   link: httpLink,

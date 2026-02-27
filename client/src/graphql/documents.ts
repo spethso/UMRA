@@ -1,9 +1,5 @@
 /**
- * Centralised GraphQL document definitions used across the UMRA client.
- *
- * Keeping all `gql` tagged templates in one place avoids duplication and
- * makes it straightforward for composables and components to reference
- * the same query / mutation documents.
+ * GraphQL query and mutation documents used across the UMRA client.
  *
  * @module graphql/documents
  */

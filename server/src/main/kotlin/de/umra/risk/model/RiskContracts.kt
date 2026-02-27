@@ -63,17 +63,17 @@ enum class DiabetesTypeOption {
     TYPE_2,
 }
 
-/** SNP genotype as supplied by the client (GraphQL input). */
+/** SNP genotype as supplied by the caller. */
 data class SnpGenotypeInput(
     val snpIndex: Int,
     val riskAlleles: Int,
 )
 
 /**
- * Raw patient input as received via the GraphQL schema.
+ * Patient input as received from the API layer.
  *
- * Optional fields default to `null` or safe sentinel values so that
- * analyzers not requiring them can proceed without additional checks.
+ * Optional fields default to absent so that analyzers not requiring
+ * them can proceed without additional checks.
  */
 data class ProstateCancerRiskInput(
     val race: Race,
@@ -225,15 +225,14 @@ data class SavedAnalysisSession(
     val createdAt: String,
 )
 
-/** Internal SNP genotype representation passed to risk models. */
+/** SNP genotype used for risk computation. */
 data class SnpGenotype(
     val snpIndex: Int,
     val riskAlleles: Int,
 )
 
 /**
- * Pre-validated, internal request object constructed from [ProstateCancerRiskInput]
- * and passed to individual [de.umra.risk.service.RiskAnalyzer] implementations.
+ * Validated patient data ready for consumption by risk analyzers.
  */
 data class ProstateCancerRiskRequest(
     val race: Race,
