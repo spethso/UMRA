@@ -56,7 +56,6 @@ class QcancerProstatePsaRiskAnalyzer(
                 appendFormField("age", request.age.toString())
                 appendFormField("sex", "1")
                 appendFormField("ethnicity", request.race.toQcancerEthnicityCode().toString())
-                appendFormField("postcode", (request.ukPostcode ?: "").trim().uppercase())
                 appendFormField("smoke_cat", request.smokingStatus.toQcancerSmokeCode().toString())
                 appendFormField("psa", request.psa.toString())
                 appendFormField("diabetes_cat", request.diabetesType.toQcancerDiabetesCode().toString())

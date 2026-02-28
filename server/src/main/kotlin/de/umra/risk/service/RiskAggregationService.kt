@@ -148,7 +148,6 @@ class RiskAggregationService(
                 gleasonScoreLegacy = gleasonScoreLegacy,
                 biopsyCancerLengthMm = biopsyCancerLengthMm,
                 biopsyBenignLengthMm = biopsyBenignLengthMm,
-                ukPostcode = ukPostcode,
                 smokingStatus = smokingStatus ?: SmokingStatusOption.NON_SMOKER,
                 diabetesType = diabetesType ?: DiabetesTypeOption.NONE,
                 manicSchizophrenia = manicSchizophrenia ?: false,

@@ -38,7 +38,7 @@ The application provides a unified interface for multiple risk analyzers and nor
 | SWOP Risk Calculator 5 | `SWOP_RC5` | `prostateVolumeCc`, `gleasonScoreLegacy`, `biopsyCancerLengthMm`, `biopsyBenignLengthMm` | Legacy indolent/aggressive model path. |
 | SWOP Future Risk Calculator (4-year risk) | `SWOP_RC6` | None | Optional: `dreVolumeClassCc` (uses default class if omitted). |
 | UCLA PCRC-MRI | `UCLA_PCRC_MRI` | `prostateVolumeCc`, `mriPiradsScore` | MRI-guided biopsy model; PI-RADS expected in 2..5. |
-| QCancer (10yr, prostate with PSA) | `QCANCER_10YR_PROSTATE_PSA` | `smokingStatus`, `diabetesType`, `qcancerYears` | Optional: `ukPostcode`, `heightCm` + `weightKg` pair, `manicSchizophrenia`; family history uses core family-history input. |
+| QCancer (10yr, prostate with PSA) | `QCANCER_10YR_PROSTATE_PSA` | `smokingStatus`, `diabetesType`, `qcancerYears` | Optional: `heightCm` + `weightKg` pair, `manicSchizophrenia`; family history uses core family-history input. |
 
 ### Result Horizon Semantics
 

@@ -91,7 +91,6 @@ export const SESSION_QUERY = gql`
         gleasonScoreLegacy
         biopsyCancerLengthMm
         biopsyBenignLengthMm
-        ukPostcode
         smokingStatus
         diabetesType
         manicSchizophrenia

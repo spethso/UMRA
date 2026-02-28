@@ -144,7 +144,6 @@ export function useSessionManager(deps: Readonly<UseSessionManagerDeps>): UseSes
         gleasonScoreLegacy: loadedInput.gleasonScoreLegacy ?? 6,
         biopsyCancerLengthMm: loadedInput.biopsyCancerLengthMm ?? 10,
         biopsyBenignLengthMm: loadedInput.biopsyBenignLengthMm ?? 40,
-        ukPostcode: loadedInput.ukPostcode ?? '',
         smokingStatus: loadedInput.smokingStatus ?? 'NON_SMOKER',
         diabetesType: loadedInput.diabetesType ?? 'NONE',
         manicSchizophrenia: loadedInput.manicSchizophrenia ?? false,

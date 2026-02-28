@@ -35,7 +35,6 @@ class SwopRc5RiskAnalyzerTest {
         gleasonScoreLegacy = 6,
         biopsyCancerLengthMm = 10.0,
         biopsyBenignLengthMm = 40.0,
-        ukPostcode = null,
         smokingStatus = SmokingStatusOption.NON_SMOKER,
         diabetesType = DiabetesTypeOption.NONE,
         manicSchizophrenia = false,

@@ -38,7 +38,6 @@ export function createDefaultRiskForm(): RiskForm {
     gleasonScoreLegacy: 6,
     biopsyCancerLengthMm: 10,
     biopsyBenignLengthMm: 40,
-    ukPostcode: '',
     smokingStatus: 'NON_SMOKER',
     diabetesType: 'NONE',
     manicSchizophrenia: false,
@@ -126,7 +125,6 @@ export function buildMutationInput({ form, flags }: Readonly<{ form: Readonly<Ri
   }
 
   if (flags.isQcancerSelected) {
-    input.ukPostcode = form.ukPostcode.trim() || null
     input.smokingStatus = form.smokingStatus
     input.diabetesType = form.diabetesType
     input.manicSchizophrenia = form.manicSchizophrenia
@@ -218,7 +216,6 @@ export function buildGuidedMutationInput(form: Readonly<RiskForm>): Record<strin
     input.biopsyBenignLengthMm = Number(form.biopsyBenignLengthMm)
   }
 
-  input.ukPostcode = form.ukPostcode.trim() || null
   input.smokingStatus = form.smokingStatus
   input.diabetesType = form.diabetesType
   input.manicSchizophrenia = form.manicSchizophrenia

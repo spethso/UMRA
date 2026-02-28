@@ -39,7 +39,6 @@ class PcptrcRiskAnalyzerTest {
         gleasonScoreLegacy = null,
         biopsyCancerLengthMm = null,
         biopsyBenignLengthMm = null,
-        ukPostcode = null,
         smokingStatus = SmokingStatusOption.NON_SMOKER,
         diabetesType = DiabetesTypeOption.NONE,
         manicSchizophrenia = false,

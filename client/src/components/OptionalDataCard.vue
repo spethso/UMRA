@@ -188,11 +188,6 @@ const emit = defineEmits<{
       </label>
 
       <label v-if="isQcancerSelected || guidedMode">
-        UK postcode (optional, QCancer)
-        <input v-model="form.ukPostcode" type="text" maxlength="8" title="UK postcode used by QCancer; leave blank if unknown." />
-      </label>
-
-      <label v-if="isQcancerSelected || guidedMode">
         Smoking status (QCancer)
         <select v-model="form.smokingStatus" title="Smoking category used by QCancer.">
           <option value="NON_SMOKER">Non-smoker</option>

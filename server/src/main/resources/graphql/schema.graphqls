@@ -48,7 +48,6 @@ input ProstateCancerRiskInput {
   biopsyCancerLengthMm: Float
   biopsyBenignLengthMm: Float
 
-  ukPostcode: String
   smokingStatus: SmokingStatusOption
   diabetesType: DiabetesTypeOption
   manicSchizophrenia: Boolean
@@ -191,7 +190,6 @@ type ProstateCancerRiskOutput {
   gleasonScoreLegacy: Int
   biopsyCancerLengthMm: Float
   biopsyBenignLengthMm: Float
-  ukPostcode: String
   smokingStatus: SmokingStatusOption
   diabetesType: DiabetesTypeOption
   manicSchizophrenia: Boolean

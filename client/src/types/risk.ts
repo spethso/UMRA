@@ -106,7 +106,6 @@ export interface RiskForm {
   gleasonScoreLegacy: number
   biopsyCancerLengthMm: number
   biopsyBenignLengthMm: number
-  ukPostcode: string
   smokingStatus: string
   diabetesType: string
   manicSchizophrenia: boolean

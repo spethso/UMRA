@@ -30,7 +30,7 @@ function makeDeps(): UseSessionManagerDeps {
       pctFreePsaAvailable: false, pctFreePsa: null, pca3Available: false, pca3: null,
       t2ergAvailable: false, t2erg: null, snpsEnabled: false, prostateVolumeCc: 40,
       mriPiradsScore: 3, dreVolumeClassCc: 40, gleasonScoreLegacy: 6,
-      biopsyCancerLengthMm: 10, biopsyBenignLengthMm: 40, ukPostcode: '',
+      biopsyCancerLengthMm: 10, biopsyBenignLengthMm: 40,
       smokingStatus: 'NON_SMOKER', diabetesType: 'NONE', manicSchizophrenia: false,
       heightCm: null, weightKg: null, qcancerYears: 10,
     }),
