@@ -275,7 +275,7 @@ const emit = defineEmits<{
       </label>
 
       <label v-if="isQcancerSelected || guidedMode">
-        QCancer horizon (years)
+        {{ guidedMode ? 'Time horizon (years)' : 'Time horizon (years, QCancer)' }}
         <select v-model.number="form.qcancerYears" title="QCancer can estimate risk over 1 to 15 years.">
           <option v-for="year in 15" :key="`qcancer-year-${year}`" :value="year">{{ year }}</option>
         </select>
